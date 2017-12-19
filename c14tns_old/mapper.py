@@ -112,4 +112,4 @@ if __name__ == '__main__':
         pose = getPose()
         laser_model.apply_model(occupancy_map, pose, laser_scan)
         showmap_map.updateMap(occupancy_map._map, 15, 50, 50)
-        # time.sleep(1)
+        #time.sleep(1)

@@ -20,7 +20,7 @@ class ShowMap(object):
         """
         import matplotlib
         if not showGUI:
-            matplotlib.use('Agg')
+            matplotlib.use('GTKAgg')
         import matplotlib.pyplot as plt
 
         self.saveMapTime = 5.0
@@ -54,6 +54,7 @@ class ShowMap(object):
         self.start_time = time.time()
 
     def updateMap(self, grid, maxValue, robot_row, robot_col):
+        import matplotlib.pyplot as plt
         """
         Creates a new BufferedImage from a grid with integer values between 0 - maxVal,
         where 0 is black and maxVal is white, with a grey scale in between. Negative values are shown as gray.
@@ -65,6 +66,9 @@ class ShowMap(object):
             param robot_row is the current position of the robot in grid row
             param robot_col is the current position of the robot in grid column
         """
+
+        plt.pause(0.02) # The GUI will crash without this delay
+
         # convert grid to a numpy matrix
         grid = np.matrix(grid)
         # mapping the grid to an Image
@@ -95,23 +99,23 @@ class ShowMap(object):
         self.__fig.canvas.draw()
 
         # Start a time that saves the image ever n seconds
-        elapsed_time = time.time() - self.start_time
-        if elapsed_time >= self.saveMapTime:
-            self.t = threading.Thread(target=saveMap, args=(self.__fig, self.mapName,))
-            self.t.start()
-            self.start_time = time.time()
+        #elapsed_time = time.time() - self.start_time
+        #if elapsed_time >= self.saveMapTime:
+            #self.t = threading.Thread(target=saveMap, args=(self.__fig, self.mapName,))
+            #self.t.start()
+            #self.start_time = time.time()
 
     def close(self):
         """ Saves the last image before closing the application """
-        import matplotlib.pyplot as plt
-        saveMap(self.__fig, self.mapName)
+        #import matplotlib.pyplot as plt
+        #saveMap(self.__fig, self.mapName)
         plt.close()
 
 def saveMap(fig, mapName):
     """ Saves the drawn Map to an Image """
-    data = np.fromstring(fig.canvas.tostring_rgb(), dtype=np.uint8, sep='')
-    data = data.reshape(fig.canvas.get_width_height()[::-1] + (3,))
-    img = Image.fromarray(data)
-    img.convert('RGB').save(mapName, 'PNG')
+    #data = np.fromstring(fig.canvas.tostring_rgb(), dtype=np.uint8, sep='')
+    #data = data.reshape(fig.canvas.get_width_height()[::-1] + (3,))
+    #img = Image.fromarray(data)
+    #img.convert('RGB').save(mapName, 'PNG')
     pass
 
