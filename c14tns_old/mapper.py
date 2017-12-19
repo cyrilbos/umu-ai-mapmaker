@@ -40,16 +40,17 @@ class Map:
 
     def get_occupancy(self, x, y):
         # TODO check bounds, raise exception
-        grid_x = int(x / self._scale)
-        grid_y = int(y / self._scale)
+        grid_x = int(x * self._scale)
+        grid_y = int(y * self._scale)
         return _map[grid_x][grid_y]
 
     def set_occupancy(self, x, y, value):
         # TODO check bounds, raise exception
-        print(x)
-        print(y)
-        grid_x = int(x / self._scale)
-        grid_y = int(y / self._scale)
+        
+        grid_x = int(x * self._scale)
+        grid_y = int(y * self._scale)
+        print(grid_x)
+        print(grid_y)
         self._map[grid_x][grid_y] = value;
 
 
@@ -86,13 +87,13 @@ class LaserModel:
 
 # Temporary testing code
 if __name__ == '__main__':
-    occupancy_map = Map(10, 10, 0.05)
-    showmap_map = ShowMap(500, 500, True) # rows, cols, showgui
+    occupancy_map = Map(10, 10, 2)
+    showmap_map = ShowMap(20, 20, True) # rows, cols, showgui
     laser_angles = getLaserAngles()
     laser_model = LaserModel(laser_angles)
     while True:
         laser_scan = getLaser()
         pose = getPose()
         laser_model.apply_model(occupancy_map, pose, laser_scan)
-        showmap_map.updateMap(occupancy_map._map, 15, 0, 0)
-        time.sleep(5)
+        showmap_map.updateMap(occupancy_map._map, 15, 50, 50)
+        #time.sleep(5)
