@@ -113,4 +113,5 @@ def saveMap(fig, mapName):
     data = data.reshape(fig.canvas.get_width_height()[::-1] + (3,))
     img = Image.fromarray(data)
     img.convert('RGB').save(mapName, 'PNG')
+    pass
 
