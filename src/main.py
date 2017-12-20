@@ -116,3 +116,12 @@ if __name__ == '__main__':
                                          FIXED_DEFAULT_DELTA_POS)
         logger.info('Starting fixed lookahead pure pursuit')
 
+    if path_name == "Path-from-bed":
+        controller.u_turn()
+
+    # Start stopwatch and start the controller logic sending instructions to the robot
+    begin_time = time.time()
+    controller.pure_pursuit(pos_path)
+    end_time = time.time()
+
+    logger.info('Path done in {}'.format(end_time - begin_time))
