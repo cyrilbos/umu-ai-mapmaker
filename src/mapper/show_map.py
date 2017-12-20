@@ -109,7 +109,7 @@ class ShowMap(object):
         """ Saves the last image before closing the application """
         #import matplotlib.pyplot as plt
         #saveMap(self.__fig, self.mapName)
-        plt.close()
+        #plt.close()
 
 def saveMap(fig, mapName):
     """ Saves the drawn Map to an Image """

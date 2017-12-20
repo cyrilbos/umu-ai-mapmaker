@@ -2,7 +2,7 @@
 
 import logging
 
-from mapper.LaserModel import LaserModel
+from mapper.laser_model import LaserModel
 
 logger = logging.getLogger(__name__)
 
@@ -17,7 +17,7 @@ class Mapper:
         self._map = map
         self._laser_model = LaserModel(laser_angles)
 
-    def update_map(laser_scan):
+    def update_map(self, laser_scan):
         """
         Update the occupancy values of the map using a sensor model
         and the provided laser scan.
@@ -38,22 +38,28 @@ class Map:
         map_height = int(real_height * scale)
         print(map_width)
         print(map_height)
-        self._map = [[0 for x in range(map_width)] for y in range(map_height)]
+        self._grid = [[0 for x in range(map_width)] for y in range(map_height)]
+
+    def convert_to_grid_indexes(self, x, y):
+        return self.convert_to_grid_index(x), self.convert_to_grid_index(y)
+
+    def convert_to_grid_index(self, real_value):
+        return round(real_value * self._scale)
+
+    def convert_to_real_position(self, grid_x, grid_y):
+        return grid_x / self._scale, grid_y / self._scale
 
     def get_occupancy(self, x, y):
         # TODO check bounds, raise exception
         grid_x = round(x * self._scale)
         grid_y = round(y * self._scale)
-        return self._map[grid_x][grid_y]
+        return self._grid[grid_x][grid_y]
 
     def set_occupancy(self, x, y, value):
         # TODO check bounds, raise exception
-        if x < 0 or y < 0 or x > 40 or y > 40:
+        if x < 0 or y < 0 or x > self._real_width or y > self._real_height:
             return
         
         grid_x = round(x * self._scale)
         grid_y = round(y * self._scale)
-        print(grid_x)
-        print(grid_y)
-        self._map[grid_x][grid_y] = value
-
+        logger.debug("set grid[x:{}][y:{}]={}".format(grid_x, grid_y, value))
