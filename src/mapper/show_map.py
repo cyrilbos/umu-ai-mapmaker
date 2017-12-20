@@ -66,7 +66,6 @@ class ShowMap(object):
             param robot_row is the current position of the robot in grid row
             param robot_col is the current position of the robot in grid column
         """
-
         plt.pause(0.02) # The GUI will crash without this delay
 
         # convert grid to a numpy matrix

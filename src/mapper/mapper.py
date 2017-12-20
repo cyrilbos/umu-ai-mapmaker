@@ -36,9 +36,10 @@ class Map:
         self._real_height = real_height
         map_width = int(real_width * scale)
         map_height = int(real_height * scale)
-        print(map_width)
-        print(map_height)
         self._grid = [[0 for x in range(map_width)] for y in range(map_height)]
+
+    def grid(self):
+        return self._grid
 
     def convert_to_grid_indexes(self, x, y):
         return self.convert_to_grid_index(x), self.convert_to_grid_index(y)
@@ -62,4 +63,6 @@ class Map:
         
         grid_x = round(x * self._scale)
         grid_y = round(y * self._scale)
+        self._grid[grid_x][grid_y] = value
         logger.debug("set grid[x:{}][y:{}]={}".format(grid_x, grid_y, value))
+

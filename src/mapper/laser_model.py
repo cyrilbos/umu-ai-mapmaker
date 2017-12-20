@@ -22,14 +22,14 @@ class LaserModel:
         # use the laser scan to update the map using
         # the sensor model
 
-
         cur_heading = Quaternion(robot_orientation.w, Vector(0, 0, robot_orientation.z)).heading()
         robot_angle = atan2(cur_heading.y, cur_heading.x)
 
         logger.debug("robot pos x:{} y:{}".format(robot_pos.x, robot_pos.y))
 
         # TODO: use beta in controller laser scan
-        beta = 0.5  # degrees, to be optimized
+        beta = 0.5 * pi / 180  # degrees, to be optimized
+        print(beta)
 
         R = self._max_distance
 
@@ -56,9 +56,15 @@ class LaserModel:
             logger.debug("laser_x: " + str(laser_hit_x) + " laser_y: " + str(laser_hit_y))
 
             robot_cell = grid.convert_to_grid_indexes(robot_pos.x, robot_pos.y)
+            logger.info(robot_cell)
             # region 1
+            # alpha = 0
             hit_cell = grid.convert_to_grid_indexes(laser_hit_x, laser_hit_y)
+            occupied_probability = ((R - r) / R + 1) / 2 * self._p_max
+            grid.set_occupancy(laser_hit_x, laser_hit_y, occupied_probability)
 
+            logger.info("probability hit cell {}".format(occupied_probability))
+            """
             logger.info("hit cell [{}][{}]".format(hit_cell[0], hit_cell[1]))
             below_hit_x = robot_pos.x + distance * cos(angle + beta)
             below_hit_y = robot_pos.y + distance * sin(angle + beta)
@@ -76,20 +82,13 @@ class LaserModel:
             if below_hit_cell != hit_cell:
                 grid.set_occupancy(below_hit_x, below_hit_y, occupied_probability)
             if above_hit_cell != hit_cell:
-                grid.set_occupancy(above_hit_x, above_hit_y, occupied_probability)  # same occupied probability for both?
-
-            # alpha = 0
-            occupied_probability = ((R - r) / R + 1) / 2 * self._p_max
-            grid.set_occupancy(laser_hit_x, laser_hit_y, occupied_probability)
+                grid.set_occupancy(above_hit_x, above_hit_y,
+                                   occupied_probability)  # same occupied probability for both?
 
             # region 2
-            #do the same for cell between robot and laser distance
-            grid.set_occupancy(laser_hit_x, laser_hit_y, 1 - occupied_probability)
-
+            # do the same for cell between robot and laser distance
+            #grid.set_occupancy(laser_hit_x, laser_hit_y, 1 - occupied_probability)
+            """
         ############
-
-        # set occupancy around where the laser hit using some
-        # probability algorithm?
         # set occupancy in a straight line to the laser hit, using
         # the line-drawing algorithm suggested in the specification
-        pass

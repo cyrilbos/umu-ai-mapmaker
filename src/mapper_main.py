@@ -16,8 +16,8 @@ from mapper.util import getLaserAngles, getLaser, getPose
 if __name__ == '__main__':
     mrds_url = "localhost:50000"
     scale = 4
-    width = 20
-    height = 20
+    width = 10
+    height = 10
     max_distance = 10
 
     # TODO: parse arguments and print usage
@@ -37,5 +37,7 @@ if __name__ == '__main__':
         laser_scan = getLaser()
         pos, rot = controller.get_pos_and_orientation()
         laser_model.apply_model(occupancy_map, pos, rot, laser_scan)
-        showmap_map.updateMap(occupancy_map._grid, 15, pos.x * scale, pos.y * scale)
+        robot_indexes = occupancy_map.convert_to_grid_indexes(pos.x, pos.y)
+        #TODO: p max getter
+        showmap_map.updateMap(occupancy_map.grid(), laser_model._p_max, robot_indexes[0], robot_indexes[1])
         # time.sleep(1)
