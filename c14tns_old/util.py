@@ -88,7 +88,7 @@ def rotate(q,v):
 
 def quaternion(v):
     q=v.copy()
-    q['W']=0.0;
+    q['W']=0.0
     return q
 
 def vector(q):
