@@ -40,17 +40,17 @@ class Map:
 
     def get_occupancy(self, x, y):
         # TODO check bounds, raise exception
-        grid_x = int(x * self._scale)
-        grid_y = int(y * self._scale)
+        grid_x = round(x * self._scale)
+        grid_y = round(y * self._scale)
         return _map[grid_x][grid_y]
 
     def set_occupancy(self, x, y, value):
         # TODO check bounds, raise exception
-        if x < 0 or y < 0 or x > 20 or y > 20:
+        if x < 0 or y < 0 or x > 40 or y > 40:
             return
         
-        grid_x = int(x * self._scale)
-        grid_y = int(y * self._scale)
+        grid_x = round(x * self._scale)
+        grid_y = round(y * self._scale)
         print(grid_x)
         print(grid_y)
         self._map[grid_x][grid_y] = value;
@@ -69,27 +69,33 @@ class LaserModel:
         # use the laser scan to update the map using
         # the sensor model
 
-        ### TEMP ###
         robot_x = pose['Pose']['Position']['X']
         robot_y = pose['Pose']['Position']['Y']
         cur_heading = heading(pose['Pose']['Orientation'])
         robot_angle = atan2(cur_heading['Y'], cur_heading['X'])
-        length = laser_scan['Echoes'][135] # straight forward
-        laser_angle = 0 # [135]
 
-        angle = robot_angle - laser_angle
+        for idx, laser_angle in enumerate(self._laser_angles):
+        #idx = 200
+        #laser_angle = self._laser_angles[200]
+            length = laser_scan['Echoes'][idx]
 
-        # fixes weird angle bug
-        while angle > pi:
-            angle =-  pi
-        while angle < -pi:
-            angle =+  pi
-        
-        laser_hit_x = robot_x + length * cos(angle)
-        laser_hit_y = robot_y + length * sin(angle)
-        print("robot_x: " + str(robot_x) + " robot_y: " + str(robot_y))
-        print("laser_x: " + str(laser_hit_x) + " laser_y: " + str(laser_hit_y))
-        grid.set_occupancy(laser_hit_x, laser_hit_y, 15)
+            angle = robot_angle + laser_angle
+            print("index:")
+            print(idx)
+            print("laser angle:")
+            print(laser_angle)
+
+            # fixes weird angle bug
+            while angle > pi:
+                angle =-  pi
+            while angle < -pi:
+                angle =+  pi
+            
+            laser_hit_x = robot_x + length * cos(angle)
+            laser_hit_y = robot_y + length * sin(angle)
+            #print("robot_x: " + str(robot_x) + " robot_y: " + str(robot_y))
+            #print("laser_x: " + str(laser_hit_x) + " laser_y: " + str(laser_hit_y))
+            grid.set_occupancy(laser_hit_x, laser_hit_y, 15)
 
 
 
@@ -103,13 +109,14 @@ class LaserModel:
 
 # Temporary testing code
 if __name__ == '__main__':
-    occupancy_map = Map(20, 20, 2)
-    showmap_map = ShowMap(40, 40, True) # rows, cols, showgui
+    occupancy_map = Map(20, 20, 4)
+    showmap_map = ShowMap(80, 80, True) # rows, cols, showgui
     laser_angles = getLaserAngles()
     laser_model = LaserModel(laser_angles)
     while True:
         laser_scan = getLaser()
         pose = getPose()
         laser_model.apply_model(occupancy_map, pose, laser_scan)
-        showmap_map.updateMap(occupancy_map._map, 15, 50, 50)
+        showmap_map.updateMap(occupancy_map._map, 15,
+            pose['Pose']['Position']['X'] * 4, pose['Pose']['Position']['Y'] * 4)
         #time.sleep(1)
