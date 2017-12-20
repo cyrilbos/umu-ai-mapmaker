@@ -1,10 +1,8 @@
 # TODO check if the position of the laser is equal to the robot's position
 
 import logging
-from math import sin, cos, atan2, pi
 
-from src.mapper.show_map import ShowMap
-from src.mapper.util import heading, getLaserAngles, getLaser, getPose
+from mapper.LaserModel import LaserModel
 
 logger = logging.getLogger(__name__)
 

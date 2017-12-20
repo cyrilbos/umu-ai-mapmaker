@@ -1,7 +1,7 @@
 from logging import getLogger
 from math import atan2, pi, cos, sin
 
-from src.mapper.util import heading
+from .util import heading
 
 logger = getLogger(__name__)
 
@@ -26,7 +26,7 @@ class LaserModel:
         beta = 0.5  # degrees, to be optimized
         r = grid._map
 
-        #TO-DO: sensor model
+        #TODO: sensor model
 
         for idx, laser_angle in enumerate(self._laser_angles):
         #idx = 200
@@ -50,7 +50,7 @@ class LaserModel:
             logger.debug("robot_x: " + str(robot_x) + " robot_y: " + str(robot_y))
             logger.debug("laser_x: " + str(laser_hit_x) + " laser_y: " + str(laser_hit_y))
 
-            #TO=DO:
+            #TODO:
             occupied_probability = 15
             grid.set_occupancy(laser_hit_x, laser_hit_y, occupied_probability)
 
