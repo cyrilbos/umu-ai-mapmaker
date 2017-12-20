@@ -3,10 +3,10 @@
 import logging
 from math import sin, cos, atan2, pi
 
-from show_map import ShowMap
-from src.util import heading, getLaserAngles, getLaser, getPose
+from src.mapper.show_map import ShowMap
+from src.mapper.util import heading, getLaserAngles, getLaser, getPose
 
-logger = logging.getLogger('mapper')
+logger = logging.getLogger(__name__)
 
 class Mapper:
     """
@@ -59,76 +59,3 @@ class Map:
         print(grid_y)
         self._map[grid_x][grid_y] = value
 
-
-class LaserModel:
-    """
-    Implements a sensor model by providing a function
-    that updates a given map using laser scanner data.
-    """
-
-    def __init__(self, laser_angles):
-        self._laser_angles = laser_angles
-
-    def apply_model(self, grid, pose, laser_scan):
-        # use the laser scan to update the map using
-        # the sensor model
-
-        robot_x = pose['Pose']['Position']['X']
-        robot_y = pose['Pose']['Position']['Y']
-        cur_heading = heading(pose['Pose']['Orientation'])
-        robot_angle = atan2(cur_heading['Y'], cur_heading['X'])
-
-        beta = 0.5  # degrees, to be optimized
-        r = grid._map
-
-        for idx, laser_angle in enumerate(self._laser_angles):
-        #idx = 200
-        #laser_angle = self._laser_angles[200]
-            R = length = laser_scan['Echoes'][idx]
-
-            angle = robot_angle + laser_angle
-            print("index:")
-            print(idx)
-            print("laser angle:")
-            print(laser_angle)
-
-            # fixes weird angle bug
-            while angle > pi:
-                angle =-  pi
-            while angle < -pi:
-                angle =+  pi
-
-            laser_hit_x = robot_x + length * cos(angle)
-            laser_hit_y = robot_y + length * sin(angle)
-            logger.debug(laser_hit_x)
-            logger.debug(laser_hit_y)
-            logger.debug("robot_x: " + str(robot_x) + " robot_y: " + str(robot_y))
-            logger.debug("laser_x: " + str(laser_hit_x) + " laser_y: " + str(laser_hit_y))
-            grid.set_occupancy(laser_hit_x, laser_hit_y, 15)
-
-
-
-        ############
-
-        # set occupancy around where the laser hit using some
-        # probability algorithm?
-        # set occupancy in a straight line to the laser hit, using
-        # the line-drawing algorithm suggested in the specification
-        pass
-
-
-
-# Temporary testing code
-if __name__ == '__main__':
-    occupancy_map = Map(20, 20, 4)
-    showmap_map = ShowMap(80, 80, True) # rows, cols, showgui
-    logging.basicConfig(level=logging.DEBUG)
-    laser_angles = getLaserAngles()
-    laser_model = LaserModel(laser_angles)
-    while True:
-        laser_scan = getLaser()
-        pose = getPose()
-        laser_model.apply_model(occupancy_map, pose, laser_scan)
-        showmap_map.updateMap(occupancy_map._map, 15,
-            pose['Pose']['Position']['X'] * 4, pose['Pose']['Position']['Y'] * 4)
-        #time.sleep(1)

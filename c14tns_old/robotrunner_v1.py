@@ -10,10 +10,7 @@ Authors: Ville Gillström (oi14vgm@cs.umu.se)
 
 """
 
-import http.client, json, time, sys, argparse, time
-from util import *
-from math import sin, cos, pi, atan2, asin, hypot, pi, sqrt
-
+from src.mapper.util import *
 
 LOOKAHEAD = 0.95
 GOAL_THRESHOLD = 1.0

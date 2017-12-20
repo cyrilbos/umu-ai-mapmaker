@@ -10,9 +10,9 @@ Authors: Ville Gillström (oi14vgm@cs.umu.se)
 
 """
 
-import http.client, json, time, sys, argparse, time
-from util import *
-from math import sin, cos, pi, atan2, asin, hypot, pi, sqrt, tan, atan
+from math import atan
+
+from src.mapper.util import *
 
 MAX_LOOKAHEAD = 1.4
 MIN_LOOKAHEAD = 0.5

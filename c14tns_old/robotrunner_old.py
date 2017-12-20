@@ -10,10 +10,7 @@ Updated by Lennart Jern 2016-09-06 (converted to Python 3)
 Updated by Filip Allberg and Daniel Harr 2017-08-30 (actually converted to Python 3)
 """
 
-import http.client, json, time, sys, argparse, time
-from util import *
-from math import sin, cos, pi, atan2, asin, hypot, pi, sqrt
-
+from src.mapper.util import *
 
 LOOKAHEAD = 0.95
 GOAL_THRESHOLD = 1.0
