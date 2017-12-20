@@ -8,6 +8,8 @@ from show_map import ShowMap
 
 from c14tns_old.util import heading, getLaserAngles, getLaser, getPose
 
+import logging
+logger = logging.getLogger('mapper')
 
 class Mapper:
     """
@@ -70,7 +72,7 @@ class LaserModel:
     def __init__(self, laser_angles):
         self._laser_angles = laser_angles
 
-    def apply_model(self, grid, pose, laser_angles, laser_scan):
+    def apply_model(self, grid, pose, laser_scan):
         # use the laser scan to update the map using
         # the sensor model
 
@@ -82,6 +84,16 @@ class LaserModel:
         length = laser_scan['Echoes'][135]  # straight forward
         laser_angle = 0  # [135]
 
+        beta = 0.5 #degrees, to be optimized
+        R = length
+        r = grid._map
+
+        logger.debug(robot_angle)
+
+
+
+
+
         angle = robot_angle - laser_angle
 
         # fixes weird angle bug
@@ -92,8 +104,10 @@ class LaserModel:
 
         laser_hit_x = robot_x + length * cos(angle)
         laser_hit_y = robot_y + length * sin(angle)
-        print("robot_x: " + str(robot_x) + " robot_y: " + str(robot_y))
-        print("laser_x: " + str(laser_hit_x) + " laser_y: " + str(laser_hit_y))
+        logger.debug(laser_hit_x)
+        logger.debug(laser_hit_y)
+        logger.debug("robot_x: " + str(robot_x) + " robot_y: " + str(robot_y))
+        logger.debug("laser_x: " + str(laser_hit_x) + " laser_y: " + str(laser_hit_y))
         grid.set_occupancy(laser_hit_x, laser_hit_y, 15)
 
         ############
@@ -105,8 +119,10 @@ class LaserModel:
         pass
 
 
+
 # Temporary testing code
 if __name__ == '__main__':
+    logging.basicConfig(level=logging.DEBUG)
     occupancy_map = Map(20, 20, 2)
     showmap_map = ShowMap(40, 40, True)  # rows, cols, showgui
     laser_angles = getLaserAngles()
@@ -114,6 +130,6 @@ if __name__ == '__main__':
     while True:
         laser_scan = getLaser()
         pose = getPose()
-        laser_model.apply_model(occupancy_map, pose, laser_angles, laser_scan)
+        laser_model.apply_model(occupancy_map, pose, laser_scan)
         showmap_map.updateMap(occupancy_map._map, 15, 50, 50)
         # time.sleep(1)
