@@ -79,29 +79,6 @@ class LaserModel:
             logger.info("hit cell [{}][{}]".format(hit_cell[0], hit_cell[1]))
             ############ seems that beta = 0.5 degrees is not enough of a difference to get a different cell
             # TODO: might want to try with a higher resolution map
-            """ 
-            below_hit_x = robot_pos.x + distance * cos(angle + beta)
-            below_hit_y = robot_pos.y + distance * sin(angle + beta)
-            below_hit_cell = grid.convert_to_grid_indexes(below_hit_x, below_hit_y)
-            logger.info("below hit cell [{}][{}]".format(below_hit_cell[0], below_hit_cell[1]))
-            above_hit_x = robot_pos.x + distance * cos(angle - beta)
-            above_hit_y = robot_pos.y + distance * sin(angle - beta)
-            above_hit_cell = grid.convert_to_grid_indexes(above_hit_x, above_hit_y)
-            logger.info("above hit cell [{}][{}]".format(above_hit_cell[0], above_hit_cell[1]))
-    
-            # TODO: recursive dichotomy? while above / below hit cell != hit cell
-            # TODO: go from alpha + beta to alpha = beta, decrement by distance between 2?
-            occupied_probability = (((R - r) / R) + ((beta - beta) / beta)) / 2 * self._p_max
-            previous_probabilty = grid.get_occupancy(float(x), float(y))
-            
-            self.set_occupancy(laser_hit_x, laser_hit_y, self.bayesian_probability(occupied_probability, previous_probabilty))
-            
-            if below_hit_cell != hit_cell:
-                grid.set_occupancy(below_hit_x, below_hit_y, occupied_probability)
-            if above_hit_cell != hit_cell:
-                grid.set_occupancy(above_hit_x, above_hit_y,
-                                   occupied_probability)  # same occupied probability for both?
-            """
 
             # region 2 = cells between the robot cell and the hit cell
             self.bresenham_line(hit_cell, robot_cell, grid, R)
