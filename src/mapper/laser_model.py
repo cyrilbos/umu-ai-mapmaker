@@ -69,8 +69,8 @@ class LaserModel:
             robot_cell = grid.convert_to_grid_indexes(robot_pos.x, robot_pos.y)
             logger.info(robot_cell)
             # region 1 = hit cell
-            # alpha = 0
             hit_cell = grid.convert_to_grid_indexes(laser_hit_x, laser_hit_y)
+            # alpha angle = 0
             # occupied_probability = (((R - r) / R) + 1) / 2 * self._p_max
             # grid.set_occupancy(laser_hit_x, laser_hit_y, occupied_probability)
 
@@ -104,30 +104,34 @@ class LaserModel:
             """
 
             # region 2 = cells between the robot cell and the hit cell
-            deltax = hit_cell[0] - robot_cell[0]
-            deltay = hit_cell[1] - robot_cell[1]
-            deltaerr = abs(deltay / deltax) if deltax != 0 else 0  # Assume deltax != 0 (line is not vertical),
-            # note that this division needs to be done in a way that preserves the fractional part
-            error = 0.0  # No error at start
-            y = robot_cell[1]
-            updated_cells = []
-
-            for x in range(robot_cell[0], hit_cell[0], int(math.copysign(1, deltay))):
-                if hit_cell not in updated_cells and grid.is_in_bounds(hit_cell):
-                    #fx = float(x)  # converting from numpy float to use Python round() method
-                    #fy = float(y)
-                    # TODO: check if that is true, otherwise angle is computable
-                    # alpha angle is supposed to be 0 (straight line), so beta - 0 / beta = 1
-                    occupied_probability = (((R - r) / R) + 1) / 2 * self._p_max
-                    previous_probability = grid.get_occupancy_idx((x, y))
-                    # empty probability, so passing 1 - occupied_probability
-                    grid.set_occupancy_idx((x, y), self.bayesian_probability(1 - occupied_probability, previous_probability))
-                    updated_cells.append(hit_cell)
-                error = error + deltaerr
-                while error >= 0.5:
-                    y = y + math.copysign(1, deltay) # math.copysign(1,x) means sign(x)
-                    error -= 1.0
-
-                ############
+            self.bresenham_line(hit_cell, robot_cell, grid, R)
                 # set occupancy in a straight line to the laser hit, using
                 # the line-drawing algorithm suggested in the specification
+
+    def bresenham_line(self, hit_cell, robot_cell, grid, R):
+        deltax = hit_cell[0] - robot_cell[0]
+        deltay = hit_cell[1] - robot_cell[1]
+        deltaerr = abs(deltay / deltax) if deltax != 0 else 0  # Assume deltax != 0 (line is not vertical),
+        # note that this division needs to be done in a way that preserves the fractional part
+        error = 0.0  # No error at start
+        y = robot_cell[1]
+        updated_cells = []
+
+        for x in range(robot_cell[0], hit_cell[0], int(math.copysign(1, deltay))):
+            cell = (int(x),int(y))
+            if cell not in updated_cells and grid.is_in_bounds(hit_cell):
+                # fx = float(x)  # converting from numpy float to use Python round() method
+                # fy = float(y)
+                # TODO: check if that is true, otherwise angle is computable
+                # alpha angle is supposed to be 0 (straight line), so beta - 0 / beta = 1
+                r = np.linalg.norm(cell[0] - robot_cell[0]) #euclidian distance between cell and robot
+                occupied_probability = (((R - r) / R) + 1) / 2 * self._p_max
+                previous_probability = grid.get_occupancy_idx(cell)
+                # empty probability, so passing 1 - occupied_probability
+                grid.set_occupancy_idx(cell, self.bayesian_probability(1 - occupied_probability,
+                                                                         previous_probability))
+                updated_cells.append(cell)
+            error = error + deltaerr
+            while error >= 0.5:
+                y = y + math.copysign(1, deltay)  # math.copysign(1,x) means sign(x)
+                error -= 1.0
