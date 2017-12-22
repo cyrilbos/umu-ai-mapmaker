@@ -1,6 +1,10 @@
 from logging import getLogger
 from math import atan2, pi, cos, sin
 
+import math
+
+import numpy as np
+
 from model import Quaternion, Vector
 from .util import heading
 
@@ -17,6 +21,13 @@ class LaserModel:
         self._laser_angles = laser_angles
         self._max_distance = max_distance
         self._p_max = 1
+
+    def bayesian_probability(self, occupied_probability, previous_probabilty):
+        empty_probability = 1 - occupied_probability
+        empty_previous_probability = 1 - previous_probabilty
+        return ((occupied_probability * previous_probabilty) /
+                (occupied_probability * previous_probabilty + empty_probability * empty_previous_probability))
+
 
     def apply_model(self, grid, robot_pos, robot_orientation, laser_scan):
         # use the laser scan to update the map using
@@ -57,15 +68,18 @@ class LaserModel:
 
             robot_cell = grid.convert_to_grid_indexes(robot_pos.x, robot_pos.y)
             logger.info(robot_cell)
-            # region 1
+            # region 1 = hit cell
             # alpha = 0
             hit_cell = grid.convert_to_grid_indexes(laser_hit_x, laser_hit_y)
-            occupied_probability = ((R - r) / R + 1) / 2 * self._p_max
-            grid.set_occupancy(laser_hit_x, laser_hit_y, occupied_probability)
+            # occupied_probability = (((R - r) / R) + 1) / 2 * self._p_max
+            # grid.set_occupancy(laser_hit_x, laser_hit_y, occupied_probability)
 
-            logger.info("probability hit cell {}".format(occupied_probability))
-            """
+            # logger.info("probability hit cell {}".format(occupied_probability))
+
             logger.info("hit cell [{}][{}]".format(hit_cell[0], hit_cell[1]))
+            ############ seems that beta = 0.5 degrees is not enough of a difference to get a different cell
+            # TODO: might want to try with a higher resolution map
+            """ 
             below_hit_x = robot_pos.x + distance * cos(angle + beta)
             below_hit_y = robot_pos.y + distance * sin(angle + beta)
             below_hit_cell = grid.convert_to_grid_indexes(below_hit_x, below_hit_y)
@@ -74,21 +88,46 @@ class LaserModel:
             above_hit_y = robot_pos.y + distance * sin(angle - beta)
             above_hit_cell = grid.convert_to_grid_indexes(above_hit_x, above_hit_y)
             logger.info("above hit cell [{}][{}]".format(above_hit_cell[0], above_hit_cell[1]))
-
-            # TODO: recursive dichotomy? until above / below hit cell == hit cell
+    
+            # TODO: recursive dichotomy? while above / below hit cell != hit cell
             # TODO: go from alpha + beta to alpha = beta, decrement by distance between 2?
             occupied_probability = (((R - r) / R) + ((beta - beta) / beta)) / 2 * self._p_max
-
+            previous_probabilty = grid.get_occupancy(float(x), float(y))
+            
+            self.set_occupancy(laser_hit_x, laser_hit_y, self.bayesian_probability(occupied_probability, previous_probabilty))
+            
             if below_hit_cell != hit_cell:
                 grid.set_occupancy(below_hit_x, below_hit_y, occupied_probability)
             if above_hit_cell != hit_cell:
                 grid.set_occupancy(above_hit_x, above_hit_y,
                                    occupied_probability)  # same occupied probability for both?
-
-            # region 2
-            # do the same for cell between robot and laser distance
-            #grid.set_occupancy(laser_hit_x, laser_hit_y, 1 - occupied_probability)
             """
-        ############
-        # set occupancy in a straight line to the laser hit, using
-        # the line-drawing algorithm suggested in the specification
+
+            # region 2 = cells between the robot cell and the hit cell
+            deltax = hit_cell[0] - robot_cell[0]
+            deltay = hit_cell[1] - robot_cell[1]
+            deltaerr = abs(deltay / deltax) if deltax != 0 else 0  # Assume deltax != 0 (line is not vertical),
+            # note that this division needs to be done in a way that preserves the fractional part
+            error = 0.0  # No error at start
+            y = robot_cell[1]
+            updated_cells = []
+
+            for x in range(robot_cell[0], hit_cell[0], int(math.copysign(1, deltay))):
+                if hit_cell not in updated_cells and grid.is_in_bounds(hit_cell):
+                    #fx = float(x)  # converting from numpy float to use Python round() method
+                    #fy = float(y)
+                    # TODO: check if that is true, otherwise angle is computable
+                    # alpha angle is supposed to be 0 (straight line), so beta - 0 / beta = 1
+                    occupied_probability = (((R - r) / R) + 1) / 2 * self._p_max
+                    previous_probability = grid.get_occupancy_idx((x, y))
+                    # empty probability, so passing 1 - occupied_probability
+                    grid.set_occupancy_idx((x, y), self.bayesian_probability(1 - occupied_probability, previous_probability))
+                    updated_cells.append(hit_cell)
+                error = error + deltaerr
+                while error >= 0.5:
+                    y = y + math.copysign(1, deltay) # math.copysign(1,x) means sign(x)
+                    error -= 1.0
+
+                ############
+                # set occupancy in a straight line to the laser hit, using
+                # the line-drawing algorithm suggested in the specification

@@ -16,9 +16,9 @@ from mapper.util import getLaserAngles, getLaser, getPose
 if __name__ == '__main__':
     mrds_url = "localhost:50000"
     scale = 4
-    width = 10
-    height = 10
-    max_distance = 10
+    width = 50
+    height = 50
+    max_distance = 30
 
     # TODO: parse arguments and print usage
     if len(argv) == 4:
