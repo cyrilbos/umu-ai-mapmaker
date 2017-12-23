@@ -1,6 +1,7 @@
 # TODO check if the position of the laser is equal to the robot's position
 
 import logging
+import numpy as np
 
 from mapper.laser_model import LaserModel
 
@@ -41,7 +42,9 @@ class Map:
         self._real_height = real_height
         self._grid_width = int(real_width * scale)
         self._grid_height = int(real_height * scale)
-        self._grid = [[0.5 for x in range(self._grid_width)] for y in range(self._grid_height)]  # Bayesian init
+        # self._grid = [[0.5 for x in range(self._grid_width)] for y in range(self._grid_height)]  # Bayesian init
+        self._grid = np.empty((self._grid_width, self._grid_height))
+        self._grid[:] = 0.5 # Bayesian init
 
     def grid(self):
         return self._grid
