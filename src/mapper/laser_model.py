@@ -11,6 +11,14 @@ from .util import heading
 logger = getLogger(__name__)
 
 
+# Got these values from requesting the laser properties (/lokarria/laser/properties).
+# I incorrectly assumed that the position of the laser scanner were the same as the
+# position of the robot. This should make scans more accurate.
+# The Z value is 0.2, in case it is needed for some reason.
+LASER_POS_X = 0.15
+LASER_POS_Y = 0
+
+
 class LaserModel:
     """
     Implements a sensor model by providing a function
@@ -51,7 +59,9 @@ class LaserModel:
             if distance > self._max_distance:
                 continue
 
+            # Probably not 100% correct as they aren't in the same position
             angle = robot_angle + laser_angle
+            
             logger.debug("laser index: {}".format(idx))
             logger.debug("laser angle: {}".format(angle))
 
@@ -61,8 +71,8 @@ class LaserModel:
             while angle < -pi:
                 angle += pi
 
-            laser_hit_x = robot_pos.x + distance * cos(angle)
-            laser_hit_y = robot_pos.y + distance * sin(angle)
+            laser_hit_x = robot_pos.x + LASER_POS_X + distance * cos(angle)
+            laser_hit_y = robot_pos.y + LASER_POS_Y + distance * sin(angle)
             logger.debug("robot_pos.x: " + str(robot_pos.x) + " robot_pos.y: " + str(robot_pos.y))
             logger.debug("laser_x: " + str(laser_hit_x) + " laser_y: " + str(laser_hit_y))
 
