@@ -69,24 +69,24 @@ class LaserModel:
             hit_cell = grid.convert_to_grid_indexes(laser_hit_x, laser_hit_y)
             logger.info("hit cell [{}][{}]".format(hit_cell[0], hit_cell[1]))
 
-            if grid.is_in_bounds(hit_cell): #TODO: should be removed if we can manage negative indexes
-                robot_cell = grid.convert_to_grid_indexes(robot_pos.x, robot_pos.y)
-                logger.info("hit cell [{}][{}]".format(robot_cell[0], robot_cell[1]))
-                # region 1 = hit cell
-                # alpha angle = 0
-                occupied_probability = (((R - r) / R) + 1) / 2 * self._p_max
-                grid.set_occupancy(laser_hit_x, laser_hit_y, self.bayesian_probability(occupied_probability,
-                                                                                       grid.get_occupancy(laser_hit_x, laser_hit_y)))
+            #if grid.is_in_bounds(hit_cell): #TODO: should be removed if we can manage negative indexes
+            robot_cell = grid.convert_to_grid_indexes(robot_pos.x, robot_pos.y)
+            logger.info("hit cell [{}][{}]".format(robot_cell[0], robot_cell[1]))
+            # region 1 = hit cell
+            # alpha angle = 0
+            occupied_probability = (((R - r) / R) + 1) / 2 * self._p_max
+            grid.set_occupancy(laser_hit_x, laser_hit_y, self.bayesian_probability(occupied_probability,
+                                                                                   grid.get_occupancy(laser_hit_x, laser_hit_y)))
 
-                # logger.info("probability hit cell {}".format(occupied_probability))
+            # logger.info("probability hit cell {}".format(occupied_probability))
 
-                ############ seems that beta = 0.5 degrees is not enough of a difference to get a different cell
-                # TODO: might want to try with a higher resolution map
+            ############ seems that beta = 0.5 degrees is not enough of a difference to get a different cell
+            # TODO: might want to try with a higher resolution map
 
-                # region 2 = cells between the robot cell and the hit cell
-                self.bresenham_line(hit_cell, robot_cell, grid, R)
-                    # set occupancy in a straight line to the laser hit, using
-                    # the line-drawing algorithm suggested in the specification
+            # region 2 = cells between the robot cell and the hit cell
+            self.bresenham_line(hit_cell, robot_cell, grid, R)
+                # set occupancy in a straight line to the laser hit, using
+                # the line-drawing algorithm suggested in the specification
 
     def bresenham_line(self, hit_cell, robot_cell, grid, R):
         deltax = hit_cell[0] - robot_cell[0]
