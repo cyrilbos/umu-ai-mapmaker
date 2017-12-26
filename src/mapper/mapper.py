@@ -53,6 +53,12 @@ class Map:
         self._grid = np.empty((self._grid_width, self._grid_height))
         self._grid[:] = 0.5 # Bayesian init
 
+    def grid_width(self):
+        return self._grid_width
+
+    def grid_height(self):
+        return self._grid_height
+
     def grid(self):
         return self._grid
 
