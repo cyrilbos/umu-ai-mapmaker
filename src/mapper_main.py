@@ -1,10 +1,9 @@
 # Temporary testing code
-
 import logging
 
 from controller import Controller
 
-logging.basicConfig(format="[%(filename)s:%(lineno)s - %(funcName)20s() ] %(message)s",
+logging.basicConfig(format="[%(asctime)s %(filename)s:%(lineno)s - %(funcName)20s() ] %(message)s",
                     level=logging.INFO)
 from sys import argv
 
@@ -16,11 +15,11 @@ import time
 
 if __name__ == '__main__':
     mrds_url = "localhost:50000"
-    scale = 4
-    x1 = -30
-    y1 = -30
-    x2 = 30
-    y2 = 30
+    scale = 16
+    x1 = -20
+    y1 = -20
+    x2 = 20
+    y2 = 20
     width = x2 - x1
     height = y2 - y1
     #width = 100

@@ -11,7 +11,7 @@ class FixedController(Controller):
     Class that inherits from Controller and implements pure pursuit with a fixed lookahead.
     """
 
-    def __init__(self, mrds_url, lin_spd=1, lookahead=5, delta_pos=0.75):
+    def __init__(self, mrds_url, lin_spd=0.2, lookahead=5, delta_pos=0.75):
         """
         Initializes a new FixedController instance.
         :param mrds_url: url which the MRDS server listens on

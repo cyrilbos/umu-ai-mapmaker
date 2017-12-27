@@ -6,6 +6,7 @@ import math
 import numpy as np
 
 from model import Quaternion, Vector
+from model.pure_pursuit import convert_to_rcs
 from .util import heading
 from .util import getPose
 
@@ -16,8 +17,8 @@ logger = getLogger(__name__)
 # I incorrectly assumed that the position of the laser scanner were the same as the
 # position of the robot. This should make scans more accurate.
 # The Z value is 0.2, in case it is needed for some reason.
-LASER_POS_X = 0.15
-LASER_POS_Y = 0
+LASER_OFFSET_X = 0.15
+LASER_OFFSET_Y = 0
 
 
 class LaserModel:
@@ -29,7 +30,7 @@ class LaserModel:
     def __init__(self, laser_angles, max_distance):
         self._laser_angles = laser_angles
         self._max_distance = max_distance
-        self._p_max = 1
+        self._p_max = 0.8
 
     def bayesian_probability(self, occupied_probability, previous_probabilty):
         empty_probability = 1 - occupied_probability
@@ -55,7 +56,6 @@ class LaserModel:
 
         # TODO: use beta in controller laser scan
         beta = 0.5 * pi / 180  # degrees, to be optimized
-        print(beta)
 
         R = self._max_distance
 
@@ -68,21 +68,25 @@ class LaserModel:
 
             # Probably not 100% correct as they aren't in the same position
             angle = robot_angle + laser_angle
-            
-            logger.debug("laser index: {}".format(idx))
-            logger.debug("laser angle: {}".format(angle))
+            laser_pos = Vector(robot_pos.x + LASER_OFFSET_X, robot_pos.x + LASER_OFFSET_Y, 0)
+            #rcs_laser_pos = convert_to_rcs(laser_pos, robot_pos, robot_orientation)
 
-            laser_hit_x = robot_pos.x + LASER_POS_X + distance * cos(angle)
-            laser_hit_y = robot_pos.y + LASER_POS_Y + distance * sin(angle)
+            logger.debug("laser index: {}".format(idx))
+
+            laser_hit_x = laser_pos.x + distance * cos(angle)
+            laser_hit_y = laser_pos.y + distance * sin(angle)
+            #angle = atan2(rcs_laser_pos.y - laser_hit_y, rcs_laser_pos.x - laser_hit_x)
+            logger.debug("laser angle: {}".format(laser_angle))
+
             logger.debug("robot_pos.x: " + str(robot_pos.x) + " robot_pos.y: " + str(robot_pos.y))
             logger.debug("laser_x: " + str(laser_hit_x) + " laser_y: " + str(laser_hit_y))
 
             hit_cell = grid.convert_to_grid_indexes(laser_hit_x, laser_hit_y)
-            logger.info("hit cell [{}][{}]".format(hit_cell[0], hit_cell[1]))
+            logger.debug("hit cell [{}][{}]".format(hit_cell[0], hit_cell[1]))
 
             #if grid.is_in_bounds(hit_cell): #TODO: should be removed if we can manage negative indexes
             robot_cell = grid.convert_to_grid_indexes(robot_pos.x, robot_pos.y)
-            logger.info("hit cell [{}][{}]".format(robot_cell[0], robot_cell[1]))
+            logger.debug("hit cell [{}][{}]".format(robot_cell[0], robot_cell[1]))
             # region 1 = hit cell
             # alpha angle = 0
             occupied_probability = (((R - r) / R) + 1) / 2 * self._p_max

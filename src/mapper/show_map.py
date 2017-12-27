@@ -3,6 +3,10 @@ import numpy as np
 import time
 import threading
 
+from logging import getLogger
+
+logger = getLogger(__name__)
+
 """
 ShowMap creates a Gui for showing the progress of the created map and saves it to file every 5 second
 Author Peter Hohnloser
@@ -66,7 +70,7 @@ class ShowMap(object):
             param robot_row is the current position of the robot in grid row
             param robot_col is the current position of the robot in grid column
         """
-        plt.pause(0.02) # The GUI will crash without this delay
+        plt.pause(0.001) # The GUI will crash without this delay
 
         # convert grid to a numpy matrix
         grid = np.matrix(grid)
@@ -98,23 +102,24 @@ class ShowMap(object):
         self.__fig.canvas.draw()
 
         # Start a time that saves the image ever n seconds
-        #elapsed_time = time.time() - self.start_time
-        #if elapsed_time >= self.saveMapTime:
-            #self.t = threading.Thread(target=saveMap, args=(self.__fig, self.mapName,))
-            #self.t.start()
-            #self.start_time = time.time()
+        elapsed_time = time.time() - self.start_time
+        if elapsed_time >= self.saveMapTime:
+            self.t = threading.Thread(target=saveMap, args=(self.__fig, self.mapName,))
+            self.t.start()
+            self.start_time = time.time()
 
     def close(self):
         """ Saves the last image before closing the application """
-        #import matplotlib.pyplot as plt
-        #saveMap(self.__fig, self.mapName)
-        #plt.close()
+        import matplotlib.pyplot as plt
+        saveMap(self.__fig, self.mapName)
+        plt.close()
 
 def saveMap(fig, mapName):
     """ Saves the drawn Map to an Image """
-    #data = np.fromstring(fig.canvas.tostring_rgb(), dtype=np.uint8, sep='')
-    #data = data.reshape(fig.canvas.get_width_height()[::-1] + (3,))
-    #img = Image.fromarray(data)
-    #img.convert('RGB').save(mapName, 'PNG')
+    data = np.fromstring(fig.canvas.tostring_rgb(), dtype=np.uint8, sep='')
+    data = data.reshape(fig.canvas.get_width_height()[::-1] + (3,))
+    img = Image.fromarray(data)
+    img.convert('RGB').save(mapName, "PNG")
+    logger.info("Saved new map under file {}".format(mapName))
     pass
 
