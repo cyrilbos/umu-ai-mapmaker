@@ -7,6 +7,7 @@ import numpy as np
 
 from model import Quaternion, Vector
 from .util import heading
+from .util import getPose
 
 logger = getLogger(__name__)
 
@@ -44,6 +45,12 @@ class LaserModel:
         cur_heading = Quaternion(robot_orientation.w, Vector(0, 0, robot_orientation.z)).heading()
         robot_angle = atan2(cur_heading.y, cur_heading.x)
 
+        # fixes weird angle bug
+        while robot_angle > pi:
+            robot_angle -= pi
+        while robot_angle < -pi:
+            robot_angle += pi
+
         logger.debug("robot pos x:{} y:{}".format(robot_pos.x, robot_pos.y))
 
         # TODO: use beta in controller laser scan
@@ -64,12 +71,6 @@ class LaserModel:
             
             logger.debug("laser index: {}".format(idx))
             logger.debug("laser angle: {}".format(angle))
-
-            # fixes weird angle bug
-            while angle > pi:
-                angle -= pi
-            while angle < -pi:
-                angle += pi
 
             laser_hit_x = robot_pos.x + LASER_POS_X + distance * cos(angle)
             laser_hit_y = robot_pos.y + LASER_POS_Y + distance * sin(angle)

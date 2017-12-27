@@ -12,6 +12,7 @@ from mapper.laser_model import LaserModel
 from mapper.mapper import Map
 from mapper.show_map import ShowMap
 from mapper.util import getLaserAngles, getLaser, getPose
+import time
 
 if __name__ == '__main__':
     mrds_url = "localhost:50000"
@@ -47,4 +48,4 @@ if __name__ == '__main__':
         robot_indexes = occupancy_map.convert_to_grid_indexes(pos.x, pos.y)
         #TODO: p max getter
         showmap_map.updateMap(occupancy_map.grid(), laser_model._p_max, robot_indexes[0], robot_indexes[1])
-        # time.sleep(1)
+        time.sleep(0.01)

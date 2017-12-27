@@ -71,7 +71,7 @@ class Map:
 
     def convert_to_real_position(self, grid_x, grid_y):
         # return grid_x / self._scale, grid_y / self._scale
-        return (grid_x / self._scale) + self._x2, (grid_y / self._scale) + self._y2
+        return (grid_x / self._scale) + self._x1, (grid_y / self._scale) + self._y1
 
     def is_in_bounds(self, cell):
         return 0 <= cell[0] < self._grid_width and 0 <= cell[1] < self._grid_height
