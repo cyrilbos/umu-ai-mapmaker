@@ -66,12 +66,16 @@ class LaserModel:
 
             # Probably not 100% correct as they aren't in the same position
             angle = robot_angle + laser_angle
-            laser_pos = Vector(robot_pos.x + LASER_OFFSET_X, robot_pos.x + LASER_OFFSET_Y, 0)
+
+            # Doesn't work for some reason (ghosting and map noise)
+            #laser_pos = Vector(robot_pos.x + LASER_OFFSET_X, robot_pos.x + LASER_OFFSET_Y, 0)
+            #laser_hit_x = laser_pos.x + distance * cos(angle)
+            #laser_hit_y = laser_pos.y + distance * sin(angle)
 
             logger.debug("laser index: {}".format(idx))
-
-            laser_hit_x = laser_pos.x + distance * cos(angle)
-            laser_hit_y = laser_pos.y + distance * sin(angle)
+            
+            laser_hit_x = robot_pos.x + LASER_OFFSET_X + distance * cos(angle)
+            laser_hit_y = robot_pos.y + LASER_OFFSET_Y + distance * sin(angle)
             logger.debug("laser angle: {}".format(laser_angle))
 
             logger.debug("robot_pos.x: " + str(robot_pos.x) + " robot_pos.y: " + str(robot_pos.y))
