@@ -20,7 +20,7 @@ class Planner:
     def find_frontiers(cspace_map, robot_pos):
         # Algorithm from http://www.ifaamas.org/Proceedings/aamas2012/papers/3A_3.pdf
 
-        grid = cspace_map.grid
+        grid = cspace_map.grid()
         robot_position = (robot_pos.x, robot_pos.y)
 
         frontiers = []

@@ -10,6 +10,7 @@ from sys import argv
 
 from mapper.laser_model import LaserModel
 from mapper.mapper import Map
+from planner.planner import Planner
 from mapper.show_map import ShowMap
 from mapper.util import getLaserAngles, getLaser, getPose
 import time
@@ -48,4 +49,6 @@ if __name__ == '__main__':
         robot_indexes = occupancy_map.convert_to_grid_indexes(pos.x, pos.y)
         #TODO: p max getter
         showmap_map.updateMap(occupancy_map.grid(), laser_model._p_max, robot_indexes[0], robot_indexes[1])
+        #planner = Planner()
+        #planner.find_frontiers(occupancy_map)
         time.sleep(0.01)
