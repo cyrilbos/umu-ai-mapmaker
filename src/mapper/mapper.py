@@ -12,6 +12,7 @@ class Mapper:
     using the laser scanner.
     """
 
+    #TODO: refactor to use this instead of Map directly
     def __init__(self, laser_angles, map):
         self._laser_angles = laser_angles  # these should be constant
         self._map = map
