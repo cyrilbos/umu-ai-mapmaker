@@ -60,5 +60,5 @@ if __name__ == '__main__':
             goal_point = p
 
         # TODO: p max getter
-        showmap_map.updateMap(occupancy_map.grid(), laser_model._p_max, robot_indexes[0], robot_indexes[1])
+        showmap_map.updateMap(occupancy_map.grid(), laser_model._p_max, robot_indexes[0], robot_indexes[1], goal_point)
         time.sleep(0.01)
