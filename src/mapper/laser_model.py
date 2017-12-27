@@ -7,8 +7,6 @@ import numpy as np
 
 from model import Quaternion, Vector
 from model.pure_pursuit import convert_to_rcs
-from .util import heading
-from .util import getPose
 
 logger = getLogger(__name__)
 
