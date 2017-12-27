@@ -30,7 +30,7 @@ class LaserModel:
     def __init__(self, laser_angles, max_distance):
         self._laser_angles = laser_angles
         self._max_distance = max_distance
-        self._p_max = 0.8
+        self._p_max = 0.9
 
     def bayesian_probability(self, occupied_probability, previous_probabilty):
         empty_probability = 1 - occupied_probability
@@ -69,13 +69,11 @@ class LaserModel:
             # Probably not 100% correct as they aren't in the same position
             angle = robot_angle + laser_angle
             laser_pos = Vector(robot_pos.x + LASER_OFFSET_X, robot_pos.x + LASER_OFFSET_Y, 0)
-            #rcs_laser_pos = convert_to_rcs(laser_pos, robot_pos, robot_orientation)
 
             logger.debug("laser index: {}".format(idx))
 
             laser_hit_x = laser_pos.x + distance * cos(angle)
             laser_hit_y = laser_pos.y + distance * sin(angle)
-            #angle = atan2(rcs_laser_pos.y - laser_hit_y, rcs_laser_pos.x - laser_hit_x)
             logger.debug("laser angle: {}".format(laser_angle))
 
             logger.debug("robot_pos.x: " + str(robot_pos.x) + " robot_pos.y: " + str(robot_pos.y))

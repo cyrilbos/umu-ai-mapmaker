@@ -24,7 +24,7 @@ class Controller:
         """
         pass
 
-    def __init__(self, mrds_url, lin_spd=1, delta_pos=0.75):
+    def __init__(self, mrds_url, lin_spd=0.5, delta_pos=0.75):
         """
         Initializes a new instance of Controller.
         :param mrds_url: url which the MRDS server listens on
@@ -105,7 +105,7 @@ class Controller:
         self.__mrds.request('GET', '/lokarria/laser/properties')
         response = self.__mrds.getresponse()
         if response.status == 200:
-            laser_data = response.read()
+            laser_data = response.read().decode('utf-8')
             response.close()
             properties = json.loads(laser_data)
             beamCount = int((properties['EndAngle'] - properties['StartAngle']) / properties['AngleIncrement'])

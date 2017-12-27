@@ -70,7 +70,7 @@ class ShowMap(object):
             param robot_row is the current position of the robot in grid row
             param robot_col is the current position of the robot in grid column
         """
-        plt.pause(0.001) # The GUI will crash without this delay
+        plt.pause(0.02) # The GUI will crash without this delay
 
         # convert grid to a numpy matrix
         grid = np.matrix(grid)
@@ -102,11 +102,11 @@ class ShowMap(object):
         self.__fig.canvas.draw()
 
         # Start a time that saves the image ever n seconds
-        elapsed_time = time.time() - self.start_time
-        if elapsed_time >= self.saveMapTime:
-            self.t = threading.Thread(target=saveMap, args=(self.__fig, self.mapName,))
-            self.t.start()
-            self.start_time = time.time()
+        #elapsed_time = time.time() - self.start_time
+        #if elapsed_time >= self.saveMapTime:
+            #self.t = threading.Thread(target=saveMap, args=(self.__fig, self.mapName,))
+            #self.t.start()
+            #self.start_time = time.time()
 
     def close(self):
         """ Saves the last image before closing the application """

@@ -1,7 +1,5 @@
 from planner.planner import Planner
-from mapper.mapper import Map
-
-
+from mapper.map import Map
 
 # Temporary testing code
 if __name__ == '__main__':
