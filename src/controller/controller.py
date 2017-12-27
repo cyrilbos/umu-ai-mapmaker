@@ -65,7 +65,7 @@ class Controller:
         self.__mrds.request('GET', '/lokarria/localization')
         response = self.__mrds.getresponse()
         if response.status == 200:
-            pos_data = json.loads(response.read())
+            pos_data = json.loads(response.read().decode('utf-8'))
             response.close()
             return Vector.from_dict(pos_data['Pose']['Position'])
         else:
@@ -78,7 +78,7 @@ class Controller:
         self.__mrds.request('GET', '/lokarria/localization')
         response = self.__mrds.getresponse()
         if response.status == 200:
-            pos_data = json.loads(response.read())
+            pos_data = json.loads(response.read().decode('utf-8'))
             response.close()
             return Vector.from_dict(pos_data['Pose']['Position']), Quaternion.from_dict(pos_data['Pose']['Orientation'])
 
@@ -92,7 +92,7 @@ class Controller:
         self.__mrds.request('GET', '/lokarria/laser/echoes')
         response = self.__mrds.getresponse()
         if response.status == 200:
-            laser_data = response.read()
+            laser_data = response.read().decode('utf-8')
             response.close()
             return json.loads(laser_data)
         else:
