@@ -93,16 +93,53 @@ class Planner:
         """
         Returns True if point has a neighboring position in collection.
         """
-        # TODO implement
-        pass
+        x, y = point
+        if (x + 1, y) in collection:
+            return True
+        if (x, y + 1) in collection:
+            return True
+        if (x + 1, y + 1) in collection:
+            return True
+        if (x - 1, y) in collection:
+            return True
+        if (x, y - 1) in collection:
+            return True;
+        if (x - 1, y - 1) in collection:
+            return True
+        if (x + 1, y - 1) in collection:
+            return True
+        if (x - 1, y + 1) in collection:
+            return True
+        return False
 
     def adjacent(self, point):
         """
         Returns the positions adjacent to the point.
         """
-        # TODO implement
-        pass
+        x, y = point
+        adjacent_points = set([])
+        adjacent_points.add((x + 1, y))
+        adjacent_points.add((x, y + 1))
+        adjacent_points.add((x + 1, y + 1))
+        adjacent_points.add((x - 1, y))
+        adjacent_points.add((x, y - 1))
+        adjacent_points.add((x - 1, y - 1))
+        adjacent_points.add((x + 1, y - 1))
+        adjacent_points.add((x - 1, y + 1))
+        return adjacent_points
 
-    def is_frontier_point(self, point):
-        # TODO implement
-        pass
+    def is_frontier_point(self, point, cspace_map):
+        # Untested!
+        grid = cspace_map.grid()
+
+        x, y = point
+
+        if cspace_map[x][y] != 0.5: # float comparison, does this work?
+            return False
+
+        for p in adjacent(point):
+            x, y = p
+            if grid[x, y] <= OPEN_MAX_VALUE:
+                return True
+
+        return False
