@@ -5,7 +5,7 @@ import logging
 from controller import Controller
 
 logging.basicConfig(format="[%(filename)s:%(lineno)s - %(funcName)20s() ] %(message)s",
-                    level=logging.INFO)
+                    level=logging.WARNING)
 from sys import argv
 
 from mapper.laser_model import LaserModel
@@ -18,10 +18,10 @@ import time
 if __name__ == '__main__':
     mrds_url = "localhost:50000"
     scale = 4
-    x1 = -30
-    y1 = -30
-    x2 = 30
-    y2 = 30
+    x1 = -15
+    y1 = -15
+    x2 = 15
+    y2 = 15
     width = x2 - x1
     height = y2 - y1
     #width = 100
@@ -48,7 +48,12 @@ if __name__ == '__main__':
         laser_model.apply_model(occupancy_map, pos, rot, laser_scan)
         robot_indexes = occupancy_map.convert_to_grid_indexes(pos.x, pos.y)
         #TODO: p max getter
-        showmap_map.updateMap(occupancy_map.grid(), laser_model._p_max, robot_indexes[0], robot_indexes[1])
-        #planner = Planner()
-        #planner.find_frontiers(occupancy_map)
+        
+        planner = Planner(occupancy_map)
+        goal_point = (0, 0)
+        p = planner.closest_frontier_centroid(robot_indexes)
+        if p is not None:
+            goal_point = p
+        showmap_map.updateMap(occupancy_map.grid(), laser_model._p_max, robot_indexes[0],
+            robot_indexes[1], goal_point)
         time.sleep(0.01)

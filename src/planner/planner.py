@@ -1,6 +1,7 @@
 from collections import deque
+from math import hypot
 
-OPEN_MAX_VALUE = 1
+OPEN_MAX_VALUE = 0.3
 
 class Planner:
     """
@@ -14,14 +15,43 @@ class Planner:
     """
 
 
-    def __init__(self):
-        pass
+    def __init__(self, cspace_map):
+        self._cspace_map = cspace_map
 
-    def find_frontiers(cspace_map, robot_pos):
+    def _distance(self, point, robot_indexes):
+        x1, y1 = robot_indexes
+        x2, y2 = point
+        return hypot(x2 - x1, y2 - y1)
+
+    def closest_frontier_centroid(self, robot_indexes):
+        frontiers = self.find_frontiers(self._cspace_map, robot_indexes)
+        if not frontiers:
+            return None
+        frontier_centroids = self.find_centroids(frontiers)
+        return min(frontier_centroids, key=lambda p: self._distance(p, robot_indexes))
+
+    def find_centroids(self, frontiers):
+        return [self.centroid(f) for f in frontiers]
+
+    def centroid(self, frontier):
+        x_c = 0
+        y_c = 0
+
+        for p in frontier:
+            x, y = p
+            x_c += x
+            y_c += y
+
+        x_c = x_c // len(frontier)
+        y_c = y_c // len(frontier)
+
+        return (x_c, y_c)
+
+    def find_frontiers(self, cspace_map, robot_indexes):
         # Algorithm from http://www.ifaamas.org/Proceedings/aamas2012/papers/3A_3.pdf
 
         grid = cspace_map.grid()
-        robot_position = (robot_pos.x, robot_pos.y)
+        robot_position = (robot_indexes[0], robot_indexes[1])
 
         frontiers = []
         queue_m = deque([])
@@ -29,7 +59,7 @@ class Planner:
         map_closed = set([])
         frontier_open = set([])
         frontier_closed = set([])
-        map_open_space = find_open(cspace_map)
+        map_open_space = self.find_open(cspace_map)
 
         queue_m.append(robot_position)
         map_open.add(robot_position)
@@ -40,12 +70,12 @@ class Planner:
             if p in map_closed:
                 continue
 
-            if is_frontier_point(p):
-                queue_f = dequeue([])
+            if self.is_frontier_point(p, cspace_map):
+                queue_f = deque([])
                 new_frontier = set([])
 
                 queue_f.append(p)
-                frontier_open.append(p)
+                frontier_open.add(p)
 
                 while queue_f:
                     q = queue_f.popleft()
@@ -53,13 +83,13 @@ class Planner:
                     if q in map_closed and q in frontier_closed:
                         continue
 
-                    if is_frontier_point(q):
+                    if self.is_frontier_point(q, cspace_map):
                         new_frontier.add(q)
-                        for w in adjacent(q):
+                        for w in self.adjacent(q):
                             if (w not in frontier_open and w not in frontier_closed and
                                     w not in map_closed):
                                 queue_f.append(w)
-                                fronter_open.add(w)
+                                frontier_open.add(w)
 
                     frontier_closed.add(q)
 
@@ -67,13 +97,15 @@ class Planner:
                 for pt in new_frontier:
                     map_closed.add(pt)
             
-            for v in adjacent(p):
+            for v in self.adjacent(p):
                 if (v not in map_open and v not in map_closed and
-                        has_neighbor_in(v, map_open_space)):
+                        self.has_neighbor_in(v, map_open_space)):
                     queue_m.append(v)
                     map_open.add(v)
 
-            map_close.add(p)
+            map_closed.add(p)
+
+        return frontiers
 
     def find_open(self, cspace_map):
         """
@@ -117,27 +149,36 @@ class Planner:
         Returns the positions adjacent to the point.
         """
         x, y = point
+
         adjacent_points = set([])
-        adjacent_points.add((x + 1, y))
-        adjacent_points.add((x, y + 1))
-        adjacent_points.add((x + 1, y + 1))
-        adjacent_points.add((x - 1, y))
-        adjacent_points.add((x, y - 1))
-        adjacent_points.add((x - 1, y - 1))
-        adjacent_points.add((x + 1, y - 1))
-        adjacent_points.add((x - 1, y + 1))
+        if x < self._cspace_map._x2:
+            adjacent_points.add((x + 1, y))
+        if y < self._cspace_map._y2:
+            adjacent_points.add((x, y + 1))
+        if x < self._cspace_map._x2 and y < self._cspace_map._y2:
+            adjacent_points.add((x + 1, y + 1))
+        if x > self._cspace_map._x1:
+            adjacent_points.add((x - 1, y))
+        if y > self._cspace_map._y1:
+            adjacent_points.add((x, y - 1))
+        if x > self._cspace_map._x1 and y > self._cspace_map._y1:
+            adjacent_points.add((x - 1, y - 1))
+        if x < self._cspace_map._x2 and y > self._cspace_map._y1:
+            adjacent_points.add((x + 1, y - 1))
+        if x > self._cspace_map._x1 and y < self._cspace_map._y2:
+            adjacent_points.add((x - 1, y + 1))
         return adjacent_points
 
     def is_frontier_point(self, point, cspace_map):
-        # Untested!
         grid = cspace_map.grid()
 
         x, y = point
 
-        if cspace_map[x][y] != 0.5: # float comparison, does this work?
+        epsilon = 0.05
+        if abs(grid[x][y] - 0.5) > epsilon:
             return False
 
-        for p in adjacent(point):
+        for p in self.adjacent(point):
             x, y = p
             if grid[x, y] <= OPEN_MAX_VALUE:
                 return True
