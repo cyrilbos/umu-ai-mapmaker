@@ -112,6 +112,20 @@ class LaserModel:
         y = robot_cell[1]
         updated_cells = []
 
+        # Vertical line, handle this separately
+        if deltax == 0:
+            x = robot_cell[0]
+            for y in range(robot_cell[1], hit_cell[1], int(math.copysign(1, deltay))):
+                cell = (int(x),int(y))
+                if cell not in updated_cells and grid.is_in_bounds(cell):
+                    r = np.linalg.norm(cell[1] - robot_cell[1]) #euclidian distance between cell and robot
+                    occupied_probability = (((R - r) / R) + 1) / 2 * self._p_max
+                    previous_probability = grid.get_occupancy_idx(cell)
+                    # empty probability, so passing 1 - occupied_probability
+                    grid.set_occupancy_idx(cell, self.bayesian_probability(1 - occupied_probability,
+                                                                             previous_probability))
+                    updated_cells.append(cell)
+
         for x in range(robot_cell[0], hit_cell[0], int(math.copysign(1, deltax))):
             cell = (int(x),int(y))
             if cell not in updated_cells and grid.is_in_bounds(cell):
