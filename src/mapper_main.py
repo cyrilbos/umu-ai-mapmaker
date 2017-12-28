@@ -3,6 +3,8 @@
 import logging
 from threading import Thread
 
+from path_planner.pathplanner import PathPlanner
+
 logging.basicConfig(format="[%(asctime)s %(filename)s:%(lineno)s - %(funcName)20s() ] %(message)s",
                     level=logging.INFO)
 from sys import argv
@@ -32,10 +34,9 @@ def mapping_routine():
         planner = Planner(occupancy_map)
         goal_point = (0, 0)
         p = planner.closest_frontier_centroid(robot_indexes)
-
         if p is not None:
             goal_point = p
-
+        path_planner.get_path(pos, goal_point)
         # TODO: p max getter
         showmap_map.updateMap(occupancy_map.grid(), laser_model._p_max, robot_indexes[0], robot_indexes[1], goal_point)
         time.sleep(0.01)
@@ -64,6 +65,8 @@ if __name__ == '__main__':
         # occupancy_map = Map(width, height, scale)
     occupancy_map = Map(x1, y1, x2, y2, scale)
     showmap_map = ShowMap(scale * width, scale * height, True)  # rows, cols, showgui
+
+    path_planner = PathPlanner(occupancy_map)
 
     controller = FixedController(mrds_url)
     laser_angles = controller.get_laser_scan_angles()
