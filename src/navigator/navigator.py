@@ -24,7 +24,6 @@ class Navigator:
         path = []
 
         robot_cell = self._grid.convert_to_grid_indexes(robot_position.x, robot_position.y)
-
         target_cell = self._grid.convert_to_grid_indexes(target_position.x, target_position.y)
 
         return path
