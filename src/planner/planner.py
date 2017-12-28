@@ -3,6 +3,10 @@ from math import hypot
 
 OPEN_MAX_VALUE = 0.3
 
+# This is for the apartment, the factory environment could
+# probably use a much higher value
+MIN_NUM_FRONTIER_POINTS = 7
+
 class Planner:
     """
     Responsible for choosing the next area to explore.
@@ -93,13 +97,15 @@ class Planner:
 
                     frontier_closed.add(q)
 
-                frontiers.append(new_frontier)
+                if len(new_frontier) > MIN_NUM_FRONTIER_POINTS:
+                    frontiers.append(new_frontier)
                 for pt in new_frontier:
                     map_closed.add(pt)
             
             for v in self.adjacent(p):
                 if (v not in map_open and v not in map_closed and
                         self.has_neighbor_in(v, map_open_space)):
+                    # TODO rewrite this to has_neighbor_in_open_space (don't need the set).
                     queue_m.append(v)
                     map_open.add(v)
 
@@ -150,23 +156,28 @@ class Planner:
         """
         x, y = point
 
+        x_max = self._cspace_map._grid_width - 1
+        y_max = self._cspace_map._grid_height -1
+
         adjacent_points = set([])
-        if x < self._cspace_map._x2:
+        
+        if x < x_max:
             adjacent_points.add((x + 1, y))
-        if y < self._cspace_map._y2:
+        if y < y_max:
             adjacent_points.add((x, y + 1))
-        if x < self._cspace_map._x2 and y < self._cspace_map._y2:
+        if x < x_max and y < y_max:
             adjacent_points.add((x + 1, y + 1))
-        if x > self._cspace_map._x1:
+        if x > 0:
             adjacent_points.add((x - 1, y))
-        if y > self._cspace_map._y1:
+        if y > 0:
             adjacent_points.add((x, y - 1))
-        if x > self._cspace_map._x1 and y > self._cspace_map._y1:
+        if x > 0 and y > 0:
             adjacent_points.add((x - 1, y - 1))
-        if x < self._cspace_map._x2 and y > self._cspace_map._y1:
+        if x < x_max and y > 0:
             adjacent_points.add((x + 1, y - 1))
-        if x > self._cspace_map._x1 and y < self._cspace_map._y2:
+        if x > 0 and y < y_max:
             adjacent_points.add((x - 1, y + 1))
+
         return adjacent_points
 
     def is_frontier_point(self, point, cspace_map):
@@ -174,7 +185,7 @@ class Planner:
 
         x, y = point
 
-        epsilon = 0.05
+        epsilon = 0.1
         if abs(grid[x][y] - 0.5) > epsilon:
             return False
 
