@@ -112,7 +112,7 @@ class LaserModel:
         y = robot_cell[1]
         updated_cells = []
 
-        for x in range(robot_cell[0], hit_cell[0], int(math.copysign(1, deltay))):
+        for x in range(robot_cell[0], hit_cell[0], int(math.copysign(1, deltax))):
             cell = (int(x),int(y))
             if cell not in updated_cells and grid.is_in_bounds(cell):
                 # fx = float(x)  # converting from numpy float to use Python round() method
