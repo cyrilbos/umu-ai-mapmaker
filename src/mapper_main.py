@@ -19,18 +19,18 @@ from controller import Controller, FixedController
 from planner.planner import Planner
 import time
 
+goal_point = None
+pos = None
+rot = None
+robot_indexes = None
+
+
 def mapping_routine():
     while True:
         laser_scan = controller.get_laser_scan()
-        pos, rot = controller.get_pos_and_orientation()
+        #pos, rot = controller.get_pos_and_orientation()
         laser_model.apply_model(occupancy_map, pos, rot, laser_scan)
-        robot_indexes = occupancy_map.convert_to_grid_indexes(pos.x, pos.y)
-        goal_point = (robot_indexes[0]+1, robot_indexes[1]+1)
-        p = goal_planner.closest_frontier_centroid(robot_indexes)
-        if p is not None:
-            goal_point = p
-        path = path_planner.get_path(robot_indexes, goal_point)
-        controller.set_pos_path(path)
+        #robot_indexes = occupancy_map.convert_to_grid_indexes(pos.x, pos.y)
         showmap_map.updateMap(occupancy_map.grid, laser_model.p_max, robot_indexes[0], robot_indexes[1], goal_point)
         time.sleep(0.01)
 
@@ -73,10 +73,23 @@ if __name__ == '__main__':
     path_planner = PathPlanner(occupancy_map)
     goal_planner = Planner(occupancy_map)
 
+    pos, rot = controller.get_pos_and_orientation()
+    robot_indexes = occupancy_map.convert_to_grid_indexes(pos.x, pos.y)
+    goal_point = goal_planner.closest_frontier_centroid(robot_indexes)
 
-
-    #mapping_thread = Thread(target=mapping_routine())
-    #mapping_thread.start()
-    controlling_thread = Thread(target=controller.pure_pursuit())
-    controlling_thread.start()
+    mapping_thread = Thread(target=mapping_routine())
+    mapping_thread.start()
     mapping_routine()
+
+    while True:
+        pos, rot = controller.get_pos_and_orientation()
+        robot_indexes = occupancy_map.convert_to_grid_indexes(pos.x, pos.y)
+        goal_point = (robot_indexes[0] + 1, robot_indexes[1] + 1)
+        p = goal_planner.closest_frontier_centroid(robot_indexes)
+        if p is not None:
+            goal_point = p
+        path = path_planner.get_path(robot_indexes, goal_point)
+        controller.set_pos_path(path)
+        controller.pure_pursuit()
+        time.sleep(0.01)
+
