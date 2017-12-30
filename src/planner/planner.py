@@ -54,7 +54,7 @@ class Planner:
     def find_frontiers(self, cspace_map, robot_indexes):
         # Algorithm from http://www.ifaamas.org/Proceedings/aamas2012/papers/3A_3.pdf
 
-        grid = cspace_map.grid()
+        grid = cspace_map.grid
         robot_position = (robot_indexes[0], robot_indexes[1])
 
         frontiers = []
@@ -118,10 +118,10 @@ class Planner:
         Returns the "open" positions in the grid.
         """
         map_open_space = set([])
-        grid = cspace_map.grid()
+        grid = cspace_map.grid
 
-        for x in range(cspace_map.grid_width()):
-            for y in range(cspace_map.grid_height()):
+        for x in range(cspace_map.grid_width):
+            for y in range(cspace_map.grid_height):
                 if grid[x][y] <= OPEN_MAX_VALUE:
                     map_open_space.add((x, y))
 
@@ -181,7 +181,7 @@ class Planner:
         return adjacent_points
 
     def is_frontier_point(self, point, cspace_map):
-        grid = cspace_map.grid()
+        grid = cspace_map.grid
 
         x, y = point
 

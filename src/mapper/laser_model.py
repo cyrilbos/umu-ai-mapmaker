@@ -30,6 +30,10 @@ class LaserModel:
         self._max_distance = max_distance
         self._p_max = 0.9
 
+    @property
+    def p_max(self):
+        return self._p_max
+
     def bayesian_probability(self, occupied_probability, previous_probabilty):
         empty_probability = 1 - occupied_probability
         empty_previous_probability = 1 - previous_probabilty

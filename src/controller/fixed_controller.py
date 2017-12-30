@@ -1,7 +1,9 @@
 from logging import getLogger
 
+import time
+
 from .controller import Controller
-from model import pure_pursuit
+from model import pure_pursuit, Vector
 
 logger = getLogger('controller')
 
@@ -11,7 +13,7 @@ class FixedController(Controller):
     Class that inherits from Controller and implements pure pursuit with a fixed lookahead.
     """
 
-    def __init__(self, mrds_url, lin_spd=0.2, lookahead=5, delta_pos=0.75):
+    def __init__(self, lookahead=5, *args, **kwargs):
         """
         Initializes a new FixedController instance.
         :param mrds_url: url which the MRDS server listens on
@@ -25,13 +27,11 @@ class FixedController(Controller):
         :type delta_pos: float
 
         """
-        super(FixedController, self).__init__(mrds_url, lin_spd=lin_spd, delta_pos=delta_pos)
+        super(FixedController, self).__init__(*args, **kwargs)
         self.__lookahead = lookahead
-        logger.info(
-            'Using {} with linear speed={}, lookahead={}, delta position={}'.format(self.__class__.__name__, lin_spd,
-                                                                                    lookahead, delta_pos))
 
-    def pure_pursuit(self, pos_path):
+
+    def pure_pursuit(self):
         """
         Implements the pure pursuit algorithm with a fixed lookahead. The robot aims for "self.__lookahead"
         positions ahead on the given path.
@@ -39,10 +39,23 @@ class FixedController(Controller):
         :param pos_path: list of Vector
         :type pos_path: list
         """
-        # Travel through the path skipping "lookahead" positions every time
-        for i in range(0, len(pos_path), self.__lookahead):
-            cur_pos, cur_rot = self.get_pos_and_orientation()
-            self.travel(cur_pos, pos_path[i], self._lin_spd,
-                        pure_pursuit.get_ang_spd(cur_pos, cur_rot, pos_path[i], self._lin_spd))
+        path = self.get_pos_path()
+        #while True:
+        new_path = self.get_pos_path()
+        if new_path != path:
+            path = self._pos_path
+        if path:
+            # Travel through the path skipping "lookahead" positions every time
+            for i in range(0, len(path), self.__lookahead):
+                new_path = self.get_pos_path()
+                if new_path != path:
+                    self.stop()
+                    path = self._pos_path
+                    break
+                cur_pos, cur_rot = self.get_pos_and_orientation()
+                target = Vector(path[i][0], path[i][1], 0)
+                logger.info("Travelling to {}".format(target))
+                self.travel(cur_pos, target, self._lin_spd,
+                            pure_pursuit.get_ang_spd(cur_pos, cur_rot, path[i], self._lin_spd))
+        time.sleep(0.01)
 
-        self.stop()

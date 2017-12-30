@@ -3,7 +3,7 @@
 import logging
 from threading import Thread
 
-from path_planner.pathplanner import PathPlanner
+from path_planner import PathPlanner
 
 logging.basicConfig(format="[%(asctime)s %(filename)s:%(lineno)s - %(funcName)20s() ] %(message)s",
                     level=logging.INFO)
@@ -19,26 +19,19 @@ from controller import Controller, FixedController
 from planner.planner import Planner
 import time
 
-# TODO: remove once path planning works
-from controller.path_loader import PathLoader
+goal_point = None
+pos = None
+rot = None
+robot_indexes = None
 
-path_filepath = 'paths/Path-around-table-and-back.json'
-path = PathLoader().loadPath(path_filepath)
 
 def mapping_routine():
     while True:
         laser_scan = controller.get_laser_scan()
-        pos, rot = controller.get_pos_and_orientation()
+        #pos, rot = controller.get_pos_and_orientation()
         laser_model.apply_model(occupancy_map, pos, rot, laser_scan)
-        robot_indexes = occupancy_map.convert_to_grid_indexes(pos.x, pos.y)
-        planner = Planner(occupancy_map)
-        goal_point = (0, 0)
-        p = planner.closest_frontier_centroid(robot_indexes)
-        if p is not None:
-            goal_point = p
-        path_planner.get_path(pos, goal_point)
-        # TODO: p max getter
-        showmap_map.updateMap(occupancy_map.grid(), laser_model._p_max, robot_indexes[0], robot_indexes[1], goal_point)
+        #robot_indexes = occupancy_map.convert_to_grid_indexes(pos.x, pos.y)
+        showmap_map.updateMap(occupancy_map.grid, laser_model.p_max, robot_indexes[0], robot_indexes[1], goal_point)
         time.sleep(0.01)
 
 
@@ -56,22 +49,47 @@ if __name__ == '__main__':
     max_distance = 30
 
     # TODO: parse arguments and print usage
-    if len(argv) == 4:
-        width = argv[1]
-        height = argv[2]
+    if len(argv) == 6:
+        x1 = argv[1]
+        x2 = argv[2]
+        y1 = argv[3]
+        y1 = argv[4]
+        url = argv[5]
     # else:
     #    print("Usage: mapper ")
 
         # occupancy_map = Map(width, height, scale)
-    occupancy_map = Map(x1, y1, x2, y2, scale)
-    showmap_map = ShowMap(scale * width, scale * height, True)  # rows, cols, showgui
 
-    path_planner = PathPlanner(occupancy_map)
 
-    controller = FixedController(mrds_url)
+    controller = FixedController(lookahead=1, mrds_url=mrds_url)
+
+
     laser_angles = controller.get_laser_scan_angles()
     laser_model = LaserModel(laser_angles, max_distance)
 
+    occupancy_map = Map(x1, y1, x2, y2, scale, controller.get_pos())
+    showmap_map = ShowMap(scale * width, scale * height, True)  # rows, cols, showgui
+
+    path_planner = PathPlanner(occupancy_map)
+    goal_planner = Planner(occupancy_map)
+
+    pos, rot = controller.get_pos_and_orientation()
+    robot_indexes = occupancy_map.convert_to_grid_indexes(pos.x, pos.y)
+    goal_point = goal_planner.closest_frontier_centroid(robot_indexes)
+
     mapping_thread = Thread(target=mapping_routine())
     mapping_thread.start()
-    controlling_thread = Thread(target=controller.pure_pursuit(path))
+    mapping_routine()
+
+    while True:
+        pos, rot = controller.get_pos_and_orientation()
+        robot_indexes = occupancy_map.convert_to_grid_indexes(pos.x, pos.y)
+        goal_point = (robot_indexes[0] + 1, robot_indexes[1] + 1)
+        p = goal_planner.closest_frontier_centroid(robot_indexes)
+        if p is not None:
+            goal_point = p
+        path = path_planner.get_path(robot_indexes, goal_point)
+        controller.set_pos_path(path)
+        controller.pure_pursuit()
+        time.sleep(0.01)
+
