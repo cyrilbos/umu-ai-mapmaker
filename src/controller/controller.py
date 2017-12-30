@@ -125,11 +125,12 @@ class Controller:
             raise self.UnexpectedResponse(response)
 
     def set_pos_path(self, pos_path):
-        if pos_path != None:
-            logger.info("Set new path to goal {}".format(pos_path[len(pos_path)-1]))
-            self._path_lock.acquire()
-            self._pos_path = pos_path
-            self._path_lock.release()
+        if pos_path and self._pos_path is not None:
+            if pos_path[-1] != self._pos_path[-1]:
+                logger.info("Set new path to goal {}".format(pos_path[len(pos_path)-1]))
+                self._path_lock.acquire()
+                self._pos_path = pos_path
+                self._path_lock.release()
 
     def get_pos_path(self):
         #TODO: lock?

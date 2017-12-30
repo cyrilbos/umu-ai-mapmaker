@@ -1,7 +1,9 @@
 from logging import getLogger
 
+import time
+
 from .controller import Controller
-from model import pure_pursuit
+from model import pure_pursuit, Vector
 
 logger = getLogger('controller')
 
@@ -38,19 +40,22 @@ class FixedController(Controller):
         :type pos_path: list
         """
         path = self.get_pos_path()
-        while True:
-            new_path = self.get_pos_path()
-            if new_path != path:
-                path = self._pos_path
-            if path:
-                # Travel through the path skipping "lookahead" positions every time
-                for i in range(0, len(path), self.__lookahead):
-                    new_path = self.get_pos_path()
-                    if new_path != path:
-                        self.stop()
-                        path = self._pos_path
-                        break
-                    cur_pos, cur_rot = self.get_pos_and_orientation()
-                    self.travel(cur_pos, path[i], self._lin_spd,
-                                pure_pursuit.get_ang_spd(cur_pos, cur_rot, path[i], self._lin_spd))
+        #while True:
+        new_path = self.get_pos_path()
+        if new_path != path:
+            path = self._pos_path
+        if path:
+            # Travel through the path skipping "lookahead" positions every time
+            for i in range(0, len(path), self.__lookahead):
+                new_path = self.get_pos_path()
+                if new_path != path:
+                    self.stop()
+                    path = self._pos_path
+                    break
+                cur_pos, cur_rot = self.get_pos_and_orientation()
+                target = Vector(path[i][0], path[i][1], 0)
+                logger.info("Travelling to {}".format(target))
+                self.travel(cur_pos, target, self._lin_spd,
+                            pure_pursuit.get_ang_spd(cur_pos, cur_rot, path[i], self._lin_spd))
+        time.sleep(0.01)
 

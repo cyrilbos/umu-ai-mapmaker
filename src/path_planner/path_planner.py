@@ -18,14 +18,11 @@ class PathPlanner:
         self._map = map
         self._graph = Graph(map)
 
-    def update_graph(self):
-        self._graph = Graph(self._map)
-
     def get_path(self, robot_cell, target_cell):
         """
             Returns a path to target_position from robot_position, avoiding known obstacles.
             :rtype List[float]
         """
-        path = self._graph.a_star(robot_cell, target_cell)
+        path = self._graph.my_a_star(robot_cell, target_cell)
         if path is not None:
             return self._graph.to_coordinates_path(path)

@@ -12,7 +12,7 @@ class Map:
         pass
 
     #def __init__(self, real_width, real_height, scale):
-    def __init__(self, x1, y1, x2, y2, scale):
+    def __init__(self, x1, y1, x2, y2, scale, init_robot_pos):
         self._scale = scale  # "squares per meter"
         self._delta_cell = 1 / scale
         #self._real_width = real_width
@@ -29,12 +29,18 @@ class Map:
         self._grid = np.empty((self._grid_width, self._grid_height))
         self._grid[:] = 0.5 # Bayesian init
 
+        # starting world position of the robot, to translate grid position into world position to travel to
+        self._init_robot_pos = init_robot_pos
+
+    @property
     def grid_width(self):
         return self._grid_width
 
+    @property
     def grid_height(self):
         return self._grid_height
 
+    @property
     def grid(self):
         return self._grid
 
@@ -48,6 +54,10 @@ class Map:
     def convert_to_real_position(self, grid_x, grid_y):
         # return grid_x / self._scale, grid_y / self._scale
         return (grid_x / self._scale) + self._x1, (grid_y / self._scale) + self._y1
+
+    def convert_to_world_position(self, cell):
+        cell_pos = self.convert_to_real_position(*cell)
+        return cell_pos[0] + self._init_robot_pos.x, cell_pos[1] + self._init_robot_pos.y
 
     def is_in_bounds(self, cell):
         return 0 <= cell[0] < self._grid_width and 0 <= cell[1] < self._grid_height
@@ -81,3 +91,6 @@ class Map:
         grid_y = int((y - self._y1) * self._scale)
         self._grid[grid_x][grid_y] = value
         logger.debug("set grid[x:{}][y:{}]={}".format(grid_x, grid_y, value))
+
+    def is_an_obstacle(self, cell):
+        return self._grid[cell[0]][cell[1]] > 0.5
