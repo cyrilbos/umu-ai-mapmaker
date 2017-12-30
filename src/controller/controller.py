@@ -1,6 +1,7 @@
 import http.client, json
 from logging import getLogger
 from math import atan2, cos, sin, pow, sqrt, pi
+from threading import Lock
 from time import sleep
 
 from model import Vector, Quaternion
@@ -24,20 +25,24 @@ class Controller:
         """
         pass
 
-    def __init__(self, mrds_url, lin_spd=0.5, delta_pos=0.75):
+    def __init__(self, mrds_url='localhost:50000', lin_spd=0.5, delta_pos=0.75, pos_path=None):
         """
         Initializes a new instance of Controller.
         :param mrds_url: url which the MRDS server listens on
         :type mrds_url: str
-        :param lin_spd:
+        :param lin_spd: linear speed value to automatically send in the requests
         :type lin_spd: float
-        :param delta_pos:
+        :param delta_pos: minimum distance to a point determine if the robot reached that point
         :type delta_pos: float
 
         """
         self.__mrds = http.client.HTTPConnection(mrds_url)
         self._lin_spd = lin_spd
         self._delta_pos = delta_pos
+        self._pos_path = pos_path
+        self._path_lock = Lock()
+
+        logger.info('Controller set with linear speed={}, delta position={}'.format(lin_spd, delta_pos))
 
     def post_speed(self, angular_speed, linear_speed):
         """
@@ -118,6 +123,17 @@ class Controller:
             return angles
         else:
             raise self.UnexpectedResponse(response)
+
+    def set_pos_path(self, pos_path):
+        if pos_path != None:
+            logger.info("Set new path to goal {}".format(pos_path[len(pos_path)-1]))
+            self._path_lock.acquire()
+            self._pos_path = pos_path
+            self._path_lock.release()
+
+    def get_pos_path(self):
+        #TODO: lock?
+        return self._pos_path
 
     def travel(self, cur_pos, tar_pos, lin_spd, ang_spd):
         """
