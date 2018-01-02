@@ -17,7 +17,7 @@ from mapper import Map
 from mapper import ShowMap
 
 
-from controller import Controller, FixedController
+from controller import FixedController
 
 from planner.planner import Planner
 import time
@@ -51,7 +51,7 @@ if __name__ == '__main__':
     height = y2 - y1
     #width = 100
     #height = 100
-    max_distance = 30
+    max_distance = 100
 
     # TODO: parse arguments and print usage
     if len(argv) == 6:
