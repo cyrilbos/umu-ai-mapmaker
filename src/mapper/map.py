@@ -93,4 +93,4 @@ class Map:
         logger.debug("set grid[x:{}][y:{}]={}".format(grid_x, grid_y, value))
 
     def is_an_obstacle(self, cell):
-        return self._grid[cell[0]][cell[1]] > 0.5
+        return self._grid[cell[0]][cell[1]] > 0.7

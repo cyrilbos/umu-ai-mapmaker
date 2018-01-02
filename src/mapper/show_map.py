@@ -99,8 +99,9 @@ class ShowMap(object):
         self.__ax.plot((robot_col), (robot_row), 'rs', markersize=self.__robot_size)
 
         # plot the goal point
-        x, y = goal_point
-        self.__ax.plot(y, x, 'bh', markersize=10)
+        if goal_point:
+            x, y = goal_point
+            self.__ax.plot(y, x, 'bh', markersize=10)
 
         # draw new figure
         self.__fig.canvas.draw()
@@ -115,7 +116,7 @@ class ShowMap(object):
     def close(self):
         """ Saves the last image before closing the application """
         import matplotlib.pyplot as plt
-        saveMap(self.__fig, self.mapName)
+        #saveMap(self.__fig, self.mapName)
         plt.close()
 
 def saveMap(fig, mapName):
