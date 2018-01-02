@@ -21,16 +21,16 @@ import time
 
 if __name__ == '__main__':
     mrds_url = "localhost:50000"
-    scale = 4
-    x1 = -15
-    y1 = -15
-    x2 = 15
-    y2 = 15
+    scale = 2
+    x1 = -50
+    y1 = -50
+    x2 = 50
+    y2 = 50
     width = x2 - x1
     height = y2 - y1
     #width = 100
     #height = 100
-    max_distance = 30
+    max_distance = 100
 
     # TODO: parse arguments and print usage
     if len(argv) == 4:
