@@ -2,10 +2,7 @@ from collections import deque
 from math import hypot
 
 OPEN_MAX_VALUE = 0.1
-
-# This is for the apartment, the factory environment could
-# probably use a much higher value
-MIN_NUM_FRONTIER_POINTS = 10
+MIN_NUM_FRONTIER_POINTS = 15
 
 class Planner:
     """
@@ -168,7 +165,7 @@ class Planner:
 
         x, y = point
 
-        epsilon = 0.1
+        epsilon = 0.2
         if abs(grid[x][y] - 0.5) > epsilon:
             return False
 

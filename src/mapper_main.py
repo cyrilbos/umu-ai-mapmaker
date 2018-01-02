@@ -1,22 +1,46 @@
 # Temporary testing code
 
 import logging
-
+import time
 
 logging.basicConfig(format="[%(asctime)s %(filename)s:%(lineno)s - %(funcName)20s() ] %(message)s",
                     level=logging.INFO)
 from sys import argv
+from multiprocessing import Process, Queue
 
 from mapper import LaserModel
 from mapper import Map
 from mapper import ShowMap
+from logging import getLogger
 
 
 from controller import Controller
 
-
 from planner.planner import Planner
-import time
+
+
+logger = getLogger(__name__)
+
+def planner_job(q_in, q_out):
+    while True:
+        occupancy_map, robot_indexes = q_in.get()
+        while not q_in.empty():
+            occupancy_map, robot_indexes = q_in.get()
+        planner = Planner(occupancy_map)
+        goal_point = (0, 0)
+        p = planner.closest_frontier_centroid(robot_indexes)
+        if p is not None:
+            goal_point = p
+        q_out.put(goal_point)
+        time.sleep(5)
+
+def show_map_job(q_sm, width, height):
+    showmap_map = ShowMap(width, height, True)  # rows, cols, showgui
+    while True:
+        occupancy_map, laser_model, robot_indexes, goal_point = q_sm.get()
+        while not q_sm.empty():
+            occupancy_map, laser_model, robot_indexes, goal_point = q_sm.get()
+        showmap_map.updateMap(occupancy_map.grid(), laser_model._p_max, robot_indexes[0], robot_indexes[1], goal_point)
 
 
 if __name__ == '__main__':
@@ -41,24 +65,38 @@ if __name__ == '__main__':
 
         # occupancy_map = Map(width, height, scale)
     occupancy_map = Map(x1, y1, x2, y2, scale)
-    showmap_map = ShowMap(scale * width, scale * height, True)  # rows, cols, showgui
+    
 
     controller = Controller(mrds_url)
     laser_angles = controller.get_laser_scan_angles()
     laser_model = LaserModel(laser_angles, max_distance)
+
+    q_in = Queue()
+    q_out = Queue()
+
+    q_sm = Queue()
+
+    p = Process(target=planner_job, args=(q_in, q_out,))
+    p.start()
+    p2 = Process(target=show_map_job, args=(q_sm, scale * width, scale * height))
+    p2.start()
+
+    goal_point = (0, 0)
 
     while True:
         laser_scan = controller.get_laser_scan()
         pos, rot = controller.get_pos_and_orientation()
         laser_model.apply_model(occupancy_map, pos, rot, laser_scan)
         robot_indexes = occupancy_map.convert_to_grid_indexes(pos.x, pos.y)
-        planner = Planner(occupancy_map)
-        goal_point = (0, 0)
-        p = planner.closest_frontier_centroid(robot_indexes)
 
-        if p is not None:
-            goal_point = p
+        if q_sm.empty():
+            q_sm.put([occupancy_map, laser_model, robot_indexes, goal_point])
+
+        if (q_in.empty()):
+            q_in.put([occupancy_map, robot_indexes])
+        while not q_out.empty():
+            goal_point = q_out.get()
 
         # TODO: p max getter
-        showmap_map.updateMap(occupancy_map.grid(), laser_model._p_max, robot_indexes[0], robot_indexes[1], goal_point)
-        time.sleep(0.01)
+
+    p.join()
