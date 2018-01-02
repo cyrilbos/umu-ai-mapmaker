@@ -25,7 +25,7 @@ class Controller:
         """
         pass
 
-    def __init__(self, mrds_url='localhost:50000', lin_spd=0.5, delta_pos=0.75, pos_path=None):
+    def __init__(self, mrds_url='localhost:50000', lin_spd=0.5, delta_pos=0.75):
         """
         Initializes a new instance of Controller.
         :param mrds_url: url which the MRDS server listens on
@@ -39,10 +39,18 @@ class Controller:
         self.__mrds = http.client.HTTPConnection(mrds_url)
         self._lin_spd = lin_spd
         self._delta_pos = delta_pos
-        self._pos_path = pos_path
-        self._path_lock = Lock()
 
         logger.info('Controller set with linear speed={}, delta position={}'.format(lin_spd, delta_pos))
+
+    def set_occupancy_map(self, occupancy_map):
+        self._occupancy_map = occupancy_map
+
+    def set_laser_model(self, laser_model):
+        self._laser_model = laser_model
+
+    def set_map_shower(self, map_shower):
+        self._map_shower = map_shower
+
 
     def post_speed(self, angular_speed, linear_speed):
         """
@@ -125,17 +133,10 @@ class Controller:
             raise self.UnexpectedResponse(response)
 
     def set_pos_path(self, pos_path):
-        if pos_path:
-            if self._pos_path is None:
-                self._pos_path = pos_path
-            elif pos_path[-1] != self._pos_path[-1]:
-                logger.info("Set new path to goal {}".format(pos_path[len(pos_path)-1]))
-               #self._path_lock.acquire()
-                self._pos_path = pos_path
-                #self._path_lock.release()
+        logger.info("Set new path to goal {}".format(pos_path[len(pos_path)-1]))
+        self._pos_path = pos_path
 
     def get_pos_path(self):
-        #TODO: lock?
         return self._pos_path
 
     def travel(self, cur_pos, tar_pos, lin_spd, ang_spd):
@@ -162,7 +163,7 @@ class Controller:
         sleep(slp_dur)
         try:
             while cur_pos.distance_to(tar_pos) > self._delta_pos:
-                cur_pos = self.get_pos()
+                cur_pos, rot = self.get_pos_and_orientation()
                 logger.debug('[travel()] current position: {}'.format(cur_pos))
                 sleep(slp_dur)
 

@@ -7,7 +7,7 @@ OPEN_MAX_VALUE = 0.1
 # probably use a much higher value
 MIN_NUM_FRONTIER_POINTS = 10
 
-class Planner:
+class GoalPlanner:
     """
     Responsible for choosing the next area to explore.
 

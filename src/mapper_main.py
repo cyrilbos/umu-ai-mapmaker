@@ -1,56 +1,58 @@
-# Temporary testing code
-import logging
-logging.basicConfig(format="[%(asctime)s %(filename)s:%(lineno)s - %(funcName)20s() ] %(message)s",
-                    level=logging.INFO)
+from sys import argv
+import time
+from multiprocessing import Queue, Process
 
-logger = logging.getLogger(__name__)
 
 from threading import Thread
 
 from path_planner import PathPlanner
 
-
-from sys import argv
-
-from mapper import LaserModel
-from mapper import Map
-from mapper import ShowMap
-
+from mapper import LaserModel, Map, ShowMap
 
 from controller import FixedController
 
-from planner.planner import Planner
-import time
+from goal_planner import GoalPlanner
 
-goal_point = None
-pos = None
-rot = None
-robot_indexes = None
+import logging
 
 
-def mapping_routine():
-    #while True:
-    global goal_point, pos, rot, robot_indexes, laser_model, showmap_map
-    laser_scan = controller.get_laser_scan()
-    #pos, rot = controller.get_pos_and_orientation()
-    laser_model.apply_model(occupancy_map, pos, rot, laser_scan)
-    #robot_indexes = occupancy_map.convert_to_grid_indexes(pos.x, pos.y)
-    showmap_map.updateMap(occupancy_map.grid, laser_model.p_max, robot_indexes[0], robot_indexes[1], goal_point)
-    logger.info("updated map")
-    time.sleep(0.01)
+logging.basicConfig(format="[%(asctime)s %(filename)s:%(lineno)s - %(funcName)20s() ] %(message)s",
+                    level=logging.INFO)
+
+logger = logging.getLogger(__name__)
+
+
+def planner_job(q_in, q_out):
+    while True:
+        occupancy_map, robot_indexes = q_in.get()
+        while not q_in.empty():
+            occupancy_map, robot_indexes = q_in.get()
+        planner = GoalPlanner(occupancy_map)
+        goal_point = (0, 0)
+        p = planner.closest_frontier_centroid(robot_indexes)
+        if p is not None:
+            goal_point = p
+        q_out.put(goal_point)
+        time.sleep(5)
+
+def show_map_job(q_sm, width, height):
+    show_map = ShowMap(width, height, True)  # rows, cols, showgui
+    while True:
+        occupancy_map, laser_model, robot_indexes, goal_point = q_sm.get()
+        while not q_sm.empty():
+            occupancy_map, laser_model, robot_indexes, goal_point = q_sm.get()
+        show_map.updateMap(occupancy_map.grid, laser_model.p_max, robot_indexes[0], robot_indexes[1], goal_point)
 
 
 if __name__ == '__main__':
     mrds_url = "localhost:50000"
-    scale = 4
+    scale = 2
     x1 = -60
     y1 = -60
     x2 = 60
     y2 = 60
     width = x2 - x1
     height = y2 - y1
-    #width = 100
-    #height = 100
     max_distance = 100
 
     # TODO: parse arguments and print usage
@@ -73,41 +75,45 @@ if __name__ == '__main__':
     laser_model = LaserModel(laser_angles, max_distance)
 
     occupancy_map = Map(x1, y1, x2, y2, scale, controller.get_pos())
-    showmap_map = ShowMap(scale * width, scale * height, True)  # rows, cols, showgui
 
     path_planner = PathPlanner(occupancy_map)
-    goal_planner = Planner(occupancy_map)
+
+    goal_planner = GoalPlanner(occupancy_map)
 
     pos, rot = controller.get_pos_and_orientation()
     robot_indexes = occupancy_map.convert_to_grid_indexes(pos.x, pos.y)
-    goal_point = goal_planner.closest_frontier_centroid(robot_indexes)
-    laser_scan = controller.get_laser_scan()
-    laser_model.apply_model(occupancy_map, pos, rot, laser_scan)
 
-    #mapping_thread = Thread(target=mapping_routine(), daemon=True)
-    #mapping_thread.start()
-   # mapping_routine()
+    q_in = Queue()
+    q_out = Queue()
+
+    q_sm = Queue()
+
+    p = Process(target=planner_job, args=(q_in, q_out,))
+    p.start()
+    p2 = Process(target=show_map_job, args=(q_sm, scale * width, scale * height))
+    p2.start()
+
+    goal_point = (0,0)
 
     while True:
+        laser_scan = controller.get_laser_scan()
         pos, rot = controller.get_pos_and_orientation()
-        robot_indexes = occupancy_map.convert_to_grid_indexes(pos.x, pos.y)
-        mapping_thread = Thread(target=mapping_routine(), daemon=True)
-        mapping_thread.start()
-        #laser_scan = controller.get_laser_scan()
-        #laser_model.apply_model(occupancy_map, pos, rot, laser_scan)
+        laser_model.apply_model(occupancy_map, pos, rot, laser_scan)
+        robot_cell = occupancy_map.convert_to_grid_indexes(pos.x, pos.y)
 
-        p = goal_planner.closest_frontier_centroid(robot_indexes)
+        if q_sm.empty():
+            q_sm.put([occupancy_map, laser_model, robot_cell, goal_point])
 
-        if p is not None:
-            goal_point = p
-            logger.info("new goal point {}".format(p))
+        if (q_in.empty()):
+            q_in.put([occupancy_map, robot_cell])
+        while not q_out.empty():
+            goal_point = q_out.get()
 
-        path = path_planner.get_path(robot_indexes, goal_point)
-        logger.info("new path {}".format(path))
+        path = path_planner.get_path(robot_cell, goal_point)
         controller.set_pos_path(path)
+        logger.info("new path {}".format(path))
 
         logger.info("starting pure pursuit")
         controller.pure_pursuit()
-        #showmap_map.updateMap(occupancy_map.grid, laser_model.p_max, robot_indexes[0], robot_indexes[1], goal_point)
-        time.sleep(0.01)
+    p.join()
 

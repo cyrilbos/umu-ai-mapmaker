@@ -39,24 +39,12 @@ class FixedController(Controller):
         :param pos_path: list of Vector
         :type pos_path: list
         """
-        path = self.get_pos_path()
-        #while True:
-        #    new_path = self.get_pos_path()
-        #    if new_path != path:
-        #        path = self._pos_path
-        if path:
-            # Travel through the path skipping "lookahead" positions every time
-            for i in range(0, len(path), self.__lookahead):
-                new_path = self.get_pos_path()
-                if new_path != path:
-                    self.stop()
-                    path = self._pos_path
-                    break
-                cur_pos, cur_rot = self.get_pos_and_orientation()
-                tar_pos = Vector(path[i][0], path[i][1], 0)
-                logger.info("Travelling to {}".format(tar_pos))
-                self.travel(cur_pos, tar_pos, self._lin_spd,
-                            pure_pursuit.get_ang_spd(cur_pos, cur_rot, tar_pos, self._lin_spd))
-            #time.sleep(0.01)
-            self.stop()
+        # Travel through the path skipping "lookahead" positions every time
+        for i in range(0, len(self._pos_path), self.__lookahead):
+            cur_pos, cur_rot = self.get_pos_and_orientation()
+            tar_pos = Vector(self._pos_path[i][0], self._pos_path[i][1], cur_pos.z)
+            logger.info("Travelling to {}".format(tar_pos))
+            self.travel(cur_pos, tar_pos, self._lin_spd,
+                        pure_pursuit.get_ang_spd(cur_pos, cur_rot, tar_pos, self._lin_spd))
+        self.stop()
 

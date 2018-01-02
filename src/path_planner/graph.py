@@ -107,7 +107,7 @@ class Graph:
                 path.appendleft(node)
             return path
 
-        #store for each neighbour link the node it was added from
+        # store for each neighbour link the node it was added from
         came_from_previous = {}
 
         current = start

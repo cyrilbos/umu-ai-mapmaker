@@ -1,6 +1,8 @@
 import numpy as np
 
-from mapper.mapper import logger
+from logging import getLogger
+
+logger = getLogger(__name__)
 
 
 class Map:
@@ -93,4 +95,4 @@ class Map:
         logger.debug("set grid[x:{}][y:{}]={}".format(grid_x, grid_y, value))
 
     def is_an_obstacle(self, cell):
-        return self._grid[cell[0]][cell[1]] > 0.7
+        return self._grid[cell[0]][cell[1]] > 0.85

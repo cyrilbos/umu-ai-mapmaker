@@ -52,7 +52,7 @@ def main():
         robot_indexes = occupancy_map.convert_to_grid_indexes(pos.x, pos.y)
         # TODO: p max getter
         map_shower.updateMap(occupancy_map.grid(), laser_model._p_max, robot_indexes[0], robot_indexes[1])
-        # planner = Planner()
+        # planner = GoalPlanner()
         # planner.find_frontiers(occupancy_map)
         time.sleep(0.01)
         i+=1

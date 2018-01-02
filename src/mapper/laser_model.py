@@ -28,7 +28,7 @@ class LaserModel:
     def __init__(self, laser_angles, max_distance):
         self._laser_angles = laser_angles
         self._max_distance = max_distance
-        self._p_max = 0.9
+        self._p_max = 0.98
 
     @property
     def p_max(self):
@@ -60,9 +60,6 @@ class LaserModel:
         laser_pos_y = robot_pos.y + distance_to_laser * sin(robot_angle)
 
         logger.debug("robot pos x:{} y:{}".format(robot_pos.x, robot_pos.y))
-
-        # TODO: use beta in controller laser scan
-        beta = 0.5 * pi / 180  # degrees, to be optimized
 
         R = self._max_distance
 
@@ -106,21 +103,6 @@ class LaserModel:
         y = robot_cell[1]
         updated_cells = []
 
-
-        # Vertical line, handle this separately
-        #if deltax == 0:
-        #    x = robot_cell[0]
-        #    for y in range(robot_cell[1], hit_cell[1], int(math.copysign(1, deltay))):
-        #        cell = (int(x), int(y))
-        #        if cell not in updated_cells and grid.is_in_bounds(cell):
-        #            r = np.linalg.norm(cell[1] - robot_cell[1])  # euclidian distance between cell and robot
-        #            occupied_probability = (((R - r) / R) + 1) / 2 * self._p_max
-        #            previous_probability = grid.get_occupancy_idx(cell)
-        #            # empty probability, so passing 1 - occupied_probability
-        #            grid.set_occupancy_idx(cell, self.bayesian_probability(1 - occupied_probability,
-        #                                                                   previous_probability))
-        #            updated_cells.append(cell)
-
         for x in range(robot_cell[0], hit_cell[0], int(math.copysign(1, deltax))):
             cell = (int(x),int(y))
             if cell not in updated_cells and grid.is_in_bounds(cell):
@@ -130,8 +112,7 @@ class LaserModel:
                 occupied_probability = (((R - r) / R) + 1) / 2 * self._p_max
                 previous_probability = grid.get_occupancy_idx(cell)
                 # empty probability, so passing 1 - occupied_probability
-                grid.set_occupancy_idx(cell, self.bayesian_probability(1 - occupied_probability,
-                                                                         previous_probability))
+                grid.set_occupancy_idx(cell, self.bayesian_probability(1 - occupied_probability, previous_probability))
                 updated_cells.append(cell)
             error = error + deltaerr
             while error >= 0.5:
