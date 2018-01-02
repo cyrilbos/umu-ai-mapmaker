@@ -43,10 +43,10 @@ def mapping_routine():
 if __name__ == '__main__':
     mrds_url = "localhost:50000"
     scale = 4
-    x1 = -15
-    y1 = -15
-    x2 = 15
-    y2 = 15
+    x1 = -60
+    y1 = -60
+    x2 = 60
+    y2 = 60
     width = x2 - x1
     height = y2 - y1
     #width = 100
@@ -107,8 +107,7 @@ if __name__ == '__main__':
         controller.set_pos_path(path)
 
         logger.info("starting pure pursuit")
-        controller_thread = Thread(target=controller.pure_pursuit())
-        controller_thread.start()
+        controller.pure_pursuit()
         #showmap_map.updateMap(occupancy_map.grid, laser_model.p_max, robot_indexes[0], robot_indexes[1], goal_point)
         time.sleep(0.01)
 
