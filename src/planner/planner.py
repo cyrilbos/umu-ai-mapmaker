@@ -1,11 +1,11 @@
 from collections import deque
 from math import hypot
 
-OPEN_MAX_VALUE = 0.3
+OPEN_MAX_VALUE = 0.1
 
 # This is for the apartment, the factory environment could
 # probably use a much higher value
-MIN_NUM_FRONTIER_POINTS = 7
+MIN_NUM_FRONTIER_POINTS = 10
 
 class Planner:
     """
@@ -63,7 +63,6 @@ class Planner:
         map_closed = set([])
         frontier_open = set([])
         frontier_closed = set([])
-        map_open_space = self.find_open(cspace_map)
 
         queue_m.append(robot_position)
         map_open.add(robot_position)
@@ -104,7 +103,7 @@ class Planner:
             
             for v in self.adjacent(p):
                 if (v not in map_open and v not in map_closed and
-                        self.has_neighbor_in(v, map_open_space)):
+                        self.has_open_neighbor(v)):
                     # TODO rewrite this to has_neighbor_in_open_space (don't need the set).
                     queue_m.append(v)
                     map_open.add(v)
@@ -113,42 +112,23 @@ class Planner:
 
         return frontiers
 
-    def find_open(self, cspace_map):
+    def has_open_neighbor(self, point):
         """
-        Returns the "open" positions in the grid.
+        Returns True if point has an open neighbor
         """
-        map_open_space = set([])
-        grid = cspace_map.grid()
+        if not self._cspace_map.is_in_bounds(point):
+            return False
+        
+        neighbors = self.adjacent(point)
+        grid = self._cspace_map.grid()
 
-        for x in range(cspace_map.grid_width()):
-            for y in range(cspace_map.grid_height()):
-                if grid[x][y] <= OPEN_MAX_VALUE:
-                    map_open_space.add((x, y))
+        for p in neighbors:
+            x, y = p
+            if grid[x][y] <= OPEN_MAX_VALUE:
+                return True
 
-        return map_open_space
-
-    def has_neighbor_in(self, point, collection):
-        """
-        Returns True if point has a neighboring position in collection.
-        """
-        x, y = point
-        if (x + 1, y) in collection:
-            return True
-        if (x, y + 1) in collection:
-            return True
-        if (x + 1, y + 1) in collection:
-            return True
-        if (x - 1, y) in collection:
-            return True
-        if (x, y - 1) in collection:
-            return True;
-        if (x - 1, y - 1) in collection:
-            return True
-        if (x + 1, y - 1) in collection:
-            return True
-        if (x - 1, y + 1) in collection:
-            return True
         return False
+        
 
     def adjacent(self, point):
         """
@@ -157,7 +137,7 @@ class Planner:
         x, y = point
 
         x_max = self._cspace_map._grid_width - 1
-        y_max = self._cspace_map._grid_height -1
+        y_max = self._cspace_map._grid_height - 1
 
         adjacent_points = set([])
         
@@ -182,6 +162,9 @@ class Planner:
 
     def is_frontier_point(self, point, cspace_map):
         grid = cspace_map.grid()
+
+        if not cspace_map.is_in_bounds(point):
+            return False
 
         x, y = point
 
