@@ -9,7 +9,7 @@ logging.basicConfig(format="[%(asctime)s %(filename)s:%(lineno)s - %(funcName)20
                     level=logging.DEBUG)
 
 if __name__ == '__main__':
-    cspace_map = Map(-10, -10, 10, 10, 4, Vector(0,0,0))
+    cspace_map = Map(-10, -10, 10, 10, 4)
     planner = PathPlanner(cspace_map)
     time.sleep(5)
     path = planner.get_path((0,0), (8,9))

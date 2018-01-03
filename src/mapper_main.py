@@ -67,40 +67,40 @@ def path_planner_job(q_path_in, q_path_out, q_pure_exit, q_showmap_path):
         occupancy_map, robot_cell, goal_point = q_path_in.get()
         while not q_path_in.empty():
             occupancy_map, robot_cell, goal_point = q_path_in.get()
-        #if goal_point: #TODO: check
-        path_planner = PathPlanner(occupancy_map)
-        path = path_planner.get_path(robot_cell, goal_point)
-        logger.info("GOAL POINT: " + str(goal_point))
-        x0, y0 = path[0]
-        x, y = path[-1]
-        logger.info("ROBOT POS: " + str(robot_cell))
-        logger.info("FIRST PATH NODE: " + str(occupancy_map.convert_to_grid_indexes(x0, y0)))
-        logger.info("LAST PATH NODE: " + str(occupancy_map.convert_to_grid_indexes(x, y)))
+        if goal_point:
+            path_planner = PathPlanner(occupancy_map)
+            path = path_planner.get_path(robot_cell, goal_point)
+            logger.info("GOAL POINT: " + str(goal_point))
+            x0, y0 = path[1]
+            x, y = path[-1]
+            logger.info("ROBOT POS: " + str(robot_cell))
+            logger.info("FIRST PATH NODE: " + str(occupancy_map.convert_to_grid_indexes(x0, y0)))
+            logger.info("LAST PATH NODE: " + str(occupancy_map.convert_to_grid_indexes(x, y)))
 
 
-        new_path = []
-        grid = occupancy_map.grid
-        for x, y in path:
-            new_node = {}
-            new_node['Pose'] = {}
-            new_node['Pose']['Position'] = {}
-            new_node['Pose']['Position']['X'] = x
-            new_node['Pose']['Position']['Y'] = y
-            new_path.append(new_node)
-        q_path_out.put(new_path)
+            new_path = []
+            grid = occupancy_map.grid
+            for x, y in path[1:]:
+                new_node = {}
+                new_node['Pose'] = {}
+                new_node['Pose']['Position'] = {}
+                new_node['Pose']['Position']['X'] = x
+                new_node['Pose']['Position']['Y'] = y
+                new_path.append(new_node)
+            q_path_out.put(new_path)
 
-        #q_path_out.put(path)
-        if q_pure_exit.empty():
-            q_pure_exit.put(1)
-        if q_showmap_path.empty():
-            coord_path = []
-            for x, y in path:
-                coord_path.append(occupancy_map.convert_to_grid_indexes(x, y))
-            q_showmap_path.put(coord_path)
+            #q_path_out.put(path)
+            if q_pure_exit.empty():
+                q_pure_exit.put(1)
+            if q_showmap_path.empty():
+                coord_path = []
+                for x, y in path:
+                    coord_path.append(occupancy_map.convert_to_grid_indexes(x, y))
+                q_showmap_path.put(coord_path)
 
 if __name__ == '__main__':
     scale = 2
-    laser_max_distance = 100
+    laser_max_distance = 80
 
     # TODO: parse arguments and print usage
     if len(argv) == 6:

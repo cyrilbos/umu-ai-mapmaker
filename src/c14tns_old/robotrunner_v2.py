@@ -232,7 +232,7 @@ def setSpeedAndAvoidObstacles(pose, lsr, lsrAngles, angularSpeed, linearSpeed):
            angularSpeed - The given angular speed
            linearSpeed - The given linear speed
     '''
-    blocked_left = blocked_right = False
+    blocked = False
     halfWidth = 29 # in indices
     zeroAngle = 135
     leftAngle = zeroAngle - halfWidth
@@ -242,27 +242,18 @@ def setSpeedAndAvoidObstacles(pose, lsr, lsrAngles, angularSpeed, linearSpeed):
         if lsr[i] < 1.5:
             angularSpeed += 1.0
             linearSpeed -= 0.6
-            blocked_left=True
-            logger.info("blocked left")
             break;
 
     for i in range(rightAngle, 135, -1):
         if lsr[i] < 1.5:
-            if blocked_left:
-                angularSpeed = 0.0
-            else:
-                angularSpeed -= 1.0
+            angularSpeed -= 1.0
             linearSpeed -= 0.6
-            blocked_right=True
-            logger.info("blocked right")
             break;
 
     if linearSpeed < 0:
         linearSpeed = 0
 
     postSpeed(angularSpeed, linearSpeed)
-    if blocked_left or blocked_right:
-        time.sleep(1)
 
 
 
