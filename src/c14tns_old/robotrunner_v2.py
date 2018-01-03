@@ -22,7 +22,7 @@ ROBOT_WIDTH = 0.9 # actual is 0.4
 
 logger = getLogger(__name__)
 
-g_lookahead = 1.4
+g_lookahead = 1.0
 def isWithinLOOKAHEAD(position, nextPosition):
     """
      Checks whether the distance between two positions is less than LOOKAHEAD
@@ -188,41 +188,7 @@ def isObstructed(pose, otherPose, lsr, lsrAngles):
 
     return False
 
-
-def getShortcutNode(pose, curNodeNum, path, lsr, lsrAngles):
-    '''
-    Looks for a shortcut node using the laser scanner. Checks if there is
-    an unobstructed loop of nodes which can be skipped.
-    Input: pose - Robot's current pose
-           curNodeNum - The current carrot node
-           path - The path
-           lsr - A laser scan
-           lsrAngles - The angles of the provided laser scan
-    Output: A new carrot node if there is a shortcut, otherwise curNodeNum.
-    '''
-
-    newNode = curNodeNum
-    newNode += 50
-
-    if newNode > len(path) - 1:
-        newNode = len(path) - 1
-
-    while not isObstructed(pose, path[newNode], lsr, lsrAngles):
-        distance = getDistance(pose['Pose']['Position'], path[newNode]['Pose']['Position'])
-        if distance < 0.3:
-            print("SHORTCUT! from " + str(curNodeNum) + " to " + str(newNode))
-            return newNode
-        if newNode == len(path) - 1:
-            newNode = curNodeNum
-            break
-        newNode += 1
-        
-    return curNodeNum
-
-
-
-
-def setSpeedAndAvoidObstacles(pose, lsr, lsrAngles, angularSpeed, linearSpeed):
+def setSpeedAndAvoidObstacles(pose, lsr, lsrAngles, angularSpeed, linearSpeed, carrotPosition):
     '''
     Adjusts the given angular and linear speeds in order to avoid obstacles
     found by using the laser scanner
@@ -232,29 +198,32 @@ def setSpeedAndAvoidObstacles(pose, lsr, lsrAngles, angularSpeed, linearSpeed):
            angularSpeed - The given angular speed
            linearSpeed - The given linear speed
     '''
-    blocked = False
+    blocked_left = blocked_right = False
     halfWidth = 29 # in indices
     zeroAngle = 135
     leftAngle = zeroAngle - halfWidth
     rightAngle = zeroAngle + halfWidth
-    
-    for i in range(leftAngle, 135 + 1):
-        if lsr[i] < 1.5:
-            angularSpeed += 1.0
-            linearSpeed -= 0.6
-            break;
 
-    for i in range(rightAngle, 135, -1):
-        if lsr[i] < 1.5:
-            angularSpeed -= 1.0
-            linearSpeed -= 0.6
+    goalAngle = getAngle(pose, carrotPosition)
+    goalAngleIdx = 0
+
+    for idx, angle in enumerate(lsrAngles):
+        if angle < goalAngle:
+            goalAngleIdx = idx
+
+    for i in range(leftAngle, rightAngle + 1):
+        if lsr[i] < 1.3:
+            if i < goalAngleIdx:
+                angularSpeed += 2.0
+            else:
+                angularSpeed -= 2.0
+            linearSpeed -= 0.7
             break;
 
     if linearSpeed < 0:
         linearSpeed = 0
 
     postSpeed(angularSpeed, linearSpeed)
-
 
 
 def goFast(path, q_pure_exit=None):
@@ -297,7 +266,7 @@ def goFast(path, q_pure_exit=None):
                 linearSpeed -= 0.01
                 angularSpeed = getPureAngularSpeed(pose, nextPose['Position'], linearSpeed)
 
-        setSpeedAndAvoidObstacles(pose, lsr, lsrAngles, angularSpeed, linearSpeed)
+        setSpeedAndAvoidObstacles(pose, lsr, lsrAngles, angularSpeed, linearSpeed, nextPose['Position'])
 
         time.sleep(0.04)
 
@@ -308,8 +277,8 @@ def goFast(path, q_pure_exit=None):
         newCarrotPosition = getNextCarrotPosition(pose, curNodeNum, path)
         nextPose = { 'Position' : newCarrotPosition }
 
-        logger.info("curNodeNum: " + str(curNodeNum))
-        logger.info("distance to node: " + str(getDistance(pose['Pose']['Position'], nextPose['Position'])))
+        logger.info("Current node: " + str(curNodeNum) + " of " + str(len(path)))
+        logger.info("distance to node: " + str(getDistance(pose['Pose']['Position'], path[curNodeNum]['Pose']['Position'])))
 
     postSpeed(0, 0)
    
