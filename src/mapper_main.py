@@ -37,13 +37,16 @@ def planner_job(q_in, q_out):
         q_out.put(goal_point)
         time.sleep(5)
 
-def show_map_job(q_sm, width, height):
+def show_map_job(q_sm, width, height, q_showmap_path):
     show_map = ShowMap(width, height, True)  # rows, cols, showgui
+    path = None
     while True:
         occupancy_map, laser_model, robot_indexes, goal_point = q_sm.get()
         while not q_sm.empty():
             occupancy_map, laser_model, robot_indexes, goal_point = q_sm.get()
-        show_map.updateMap(occupancy_map.grid, laser_model.p_max, robot_indexes[0], robot_indexes[1], goal_point)
+        if not q_showmap_path.empty():
+            path = q_showmap_path.get()
+        show_map.updateMap(occupancy_map.grid, laser_model.p_max, robot_indexes[0], robot_indexes[1], goal_point, path)
 
 def pure_pursuit_job(q_path_out, q_pure_exit):
     #mrds_url = "localhost:50000"
@@ -61,8 +64,9 @@ def pure_pursuit_job(q_path_out, q_pure_exit):
         #controller.pure_pursuit(q_pure_exit)
         logger.info("PURE: NEW PATH")
 
-def path_planner_job(q_path_in, q_path_out, q_pure_exit):
+def path_planner_job(q_path_in, q_path_out, q_pure_exit, q_showmap_path):
     while True:
+        time.sleep(10)
         occupancy_map, robot_cell, goal_point = q_path_in.get()
         while not q_path_in.empty():
             occupancy_map, robot_cell, goal_point = q_path_in.get()
@@ -74,6 +78,7 @@ def path_planner_job(q_path_in, q_path_out, q_pure_exit):
         logger.info("ROBOT POS: " + str(robot_cell))
         logger.info("FIRST PATH NODE: " + str(occupancy_map.convert_to_grid_indexes(x0, y0)))
         logger.info("LAST PATH NODE: " + str(occupancy_map.convert_to_grid_indexes(x, y)))
+
 
         new_path = []
         grid = occupancy_map.grid
@@ -89,7 +94,11 @@ def path_planner_job(q_path_in, q_path_out, q_pure_exit):
         #q_path_out.put(path)
         if q_pure_exit.empty():
             q_pure_exit.put(1)
-        time.sleep(10)
+        if q_showmap_path.empty():
+            coord_path = []
+            for x, y in path:
+                coord_path.append(occupancy_map.convert_to_grid_indexes(x, y))
+            q_showmap_path.put(coord_path)
 
 if __name__ == '__main__':
     mrds_url = "localhost:50000"
@@ -138,15 +147,16 @@ if __name__ == '__main__':
     q_path_out = Queue()
     q_pure_exit = Queue()
 
+    q_showmap_path = Queue()
 
     p = Process(target=planner_job, args=(q_in, q_out,))
     p.daemon = False
     p.start()
-    p2 = Process(target=show_map_job, args=(q_sm, scale * width, scale * height))
+    p2 = Process(target=show_map_job, args=(q_sm, scale * width, scale * height, q_showmap_path,))
     p2.daemon = False
     p2.start()
 
-    p3 = Process(target=path_planner_job, args=(q_path_in, q_path_out, q_pure_exit,))
+    p3 = Process(target=path_planner_job, args=(q_path_in, q_path_out, q_pure_exit, q_showmap_path,))
     p3.daemon = False
     p3.start()
 
