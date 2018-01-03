@@ -13,6 +13,8 @@ from controller import FixedController
 
 from goal_planner import GoalPlanner
 
+from c14tns_old.robotrunner_v2 import goFast
+
 import logging
 
 
@@ -43,6 +45,51 @@ def show_map_job(q_sm, width, height):
             occupancy_map, laser_model, robot_indexes, goal_point = q_sm.get()
         show_map.updateMap(occupancy_map.grid, laser_model.p_max, robot_indexes[0], robot_indexes[1], goal_point)
 
+def pure_pursuit_job(q_path_out, q_pure_exit):
+    #mrds_url = "localhost:50000"
+    #controller = FixedController(lookahead=1, mrds_url=mrds_url)
+    while True:
+        path = q_path_out.get()
+        while not q_path_out.empty():
+            path = q_path_out.get()
+        #logger.info(path)
+        #try:
+        goFast(path, q_pure_exit)
+        #except Exception as e:
+        #    logger.warning("PURE PURSUIT CRASHED: " + str(e))
+        #logger.info("starting pure pursuit")
+        #controller.pure_pursuit(q_pure_exit)
+        logger.info("PURE: NEW PATH")
+
+def path_planner_job(q_path_in, q_path_out, q_pure_exit):
+    while True:
+        occupancy_map, robot_cell, goal_point = q_path_in.get()
+        while not q_path_in.empty():
+            occupancy_map, robot_cell, goal_point = q_path_in.get()
+        path_planner = PathPlanner(occupancy_map)
+        path = path_planner.get_path(robot_cell, goal_point)
+        logger.info("GOAL POINT: " + str(goal_point))
+        x0, y0 = path[0]
+        x, y = path[-1]
+        logger.info("ROBOT POS: " + str(robot_cell))
+        logger.info("FIRST PATH NODE: " + str(occupancy_map.convert_to_grid_indexes(x0, y0)))
+        logger.info("LAST PATH NODE: " + str(occupancy_map.convert_to_grid_indexes(x, y)))
+
+        new_path = []
+        grid = occupancy_map.grid
+        for x, y in path:
+            new_node = {}
+            new_node['Pose'] = {}
+            new_node['Pose']['Position'] = {}
+            new_node['Pose']['Position']['X'] = x
+            new_node['Pose']['Position']['Y'] = y
+            new_path.append(new_node)
+        q_path_out.put(new_path)
+        
+        #q_path_out.put(path)
+        if q_pure_exit.empty():
+            q_pure_exit.put(1)
+        time.sleep(10)
 
 if __name__ == '__main__':
     mrds_url = "localhost:50000"
@@ -70,13 +117,12 @@ if __name__ == '__main__':
 
     controller = FixedController(lookahead=1, mrds_url=mrds_url)
 
-
     laser_angles = controller.get_laser_scan_angles()
     laser_model = LaserModel(laser_angles, max_distance)
 
     occupancy_map = Map(x1, y1, x2, y2, scale, controller.get_pos())
 
-    path_planner = PathPlanner(occupancy_map)
+    
 
     goal_planner = GoalPlanner(occupancy_map)
 
@@ -88,10 +134,25 @@ if __name__ == '__main__':
 
     q_sm = Queue()
 
+    q_path_in = Queue()
+    q_path_out = Queue()
+    q_pure_exit = Queue()
+
+
     p = Process(target=planner_job, args=(q_in, q_out,))
+    p.daemon = False
     p.start()
     p2 = Process(target=show_map_job, args=(q_sm, scale * width, scale * height))
+    p2.daemon = False
     p2.start()
+
+    p3 = Process(target=path_planner_job, args=(q_path_in, q_path_out, q_pure_exit,))
+    p3.daemon = False
+    p3.start()
+
+    p4 = Process(target=pure_pursuit_job, args=(q_path_out, q_pure_exit))
+    p4.daemon = False
+    p4.start()
 
     goal_point = (0,0)
 
@@ -104,16 +165,16 @@ if __name__ == '__main__':
         if q_sm.empty():
             q_sm.put([occupancy_map, laser_model, robot_cell, goal_point])
 
-        if (q_in.empty()):
+        if q_in.empty():
             q_in.put([occupancy_map, robot_cell])
         while not q_out.empty():
             goal_point = q_out.get()
 
-        path = path_planner.get_path(robot_cell, goal_point)
-        controller.set_pos_path(path)
-        logger.info("new path {}".format(path))
+        if q_path_in.empty():
+            q_path_in.put([occupancy_map, robot_cell, goal_point])
 
-        logger.info("starting pure pursuit")
-        controller.pure_pursuit()
+        time.sleep(0.2)
+
+
     p.join()
 

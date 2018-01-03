@@ -9,18 +9,20 @@ Authors: Ville Gillström (oi14vgm@cs.umu.se)
          Tobias Nebaeus (c14tns@cs.umu.se)
 
 """
-
+from logging import getLogger
 from math import atan
+from multiprocessing import Queue
 
-from src.mapper.util import *
+from .util import *
 
 MAX_LOOKAHEAD = 1.4
 MIN_LOOKAHEAD = 0.5
 GOAL_THRESHOLD = 1.0
 ROBOT_WIDTH = 0.9 # actual is 0.4
 
-g_lookahead = 1.0
+logger = getLogger(__name__)
 
+g_lookahead = 1.4
 def isWithinLOOKAHEAD(position, nextPosition):
     """
      Checks whether the distance between two positions is less than LOOKAHEAD
@@ -81,47 +83,12 @@ def getNextCarrotNode(pose, curNodeNum, path, lsr, lsrAngles):
     Output: The carrot (goal) node
     '''
 
-    global g_lookahead
-
-    newNode = curNodeNum
+    while (isWithinLOOKAHEAD(pose['Pose']['Position'],
+            path[curNodeNum]['Pose']['Position']) and
+            (curNodeNum < len(path) - 1)):
+        curNodeNum += 1;
     
-    n = newNode
-    foundNode = False
-    lastDistance = getDistance(
-            pose['Pose']['Position'],
-            path[n]['Pose']['Position'])
-    while not foundNode and n > 0:
-        distance = getDistance(
-            pose['Pose']['Position'],
-            path[n - 1]['Pose']['Position'])
-        if distance < lastDistance:
-            lastDistance = distance
-        else:
-            foundNode = True
-
-    g_lookahead = 1.0
-    while n < len(path) - 1 and g_lookahead < MAX_LOOKAHEAD and g_lookahead > MIN_LOOKAHEAD:
-        if not isObstructed(pose, path[n], lsr, lsrAngles):
-            g_lookahead += getDistance(
-                    path[n]['Pose']['Position'], path[n - 1]['Pose']['Position'])
-        else:
-            g_lookahead -= getDistance(
-                    path[n]['Pose']['Position'], path[n - 1]['Pose']['Position'])
-            break;
-        n += 1
-    
-    while newNode < len(path) - 1:
-        withinLookahead = isWithinLOOKAHEAD(pose['Pose']['Position'],
-                path[newNode]['Pose']['Position'])
-
-        if withinLookahead:
-            newNode += 1;
-        else:
-            if newNode > 0:
-                newNode -= 1
-            return newNode
-
-    return newNode
+    return curNodeNum
 
 
 def getNextCarrotPosition(pose, curNodeNum, path):
@@ -223,7 +190,7 @@ def isObstructed(pose, otherPose, lsr, lsrAngles):
 
 
 def getShortcutNode(pose, curNodeNum, path, lsr, lsrAngles):
-  '''
+    '''
     Looks for a shortcut node using the laser scanner. Checks if there is
     an unobstructed loop of nodes which can be skipped.
     Input: pose - Robot's current pose
@@ -253,24 +220,6 @@ def getShortcutNode(pose, curNodeNum, path, lsr, lsrAngles):
     return curNodeNum
 
 
-def takeShortcut(pose, curNodeNum, path, node):
-     '''
-    Pauses normal execution of the pure pursuit algorithm in order to
-    turn toward a shortcut node. This is used to avoid the wide turns
-    that the robot would otherwise take using pure pursuit.
-    Input: pose - Robot's current pose
-           curNodeNum - The current carrot node
-           path - The path
-           node - The shortcut node
-    '''
-    angle = getAngle(pose, path[node]['Pose']['Position'])
-    while abs(angle) > pi/6:
-        pose = getPose()
-        angle = getAngle(pose, path[node]['Pose']['Position'])
-        angularSpeed = -1.5 * (2 / pi) * angle
-        linearSpeed = 0
-        postSpeed(angularSpeed, linearSpeed)
-        time.sleep(0.04)
 
 
 def setSpeedAndAvoidObstacles(pose, lsr, lsrAngles, angularSpeed, linearSpeed):
@@ -290,13 +239,13 @@ def setSpeedAndAvoidObstacles(pose, lsr, lsrAngles, angularSpeed, linearSpeed):
     rightAngle = zeroAngle + halfWidth
     
     for i in range(leftAngle, 135 + 1):
-        if lsr[i] < 0.5:
+        if lsr[i] < 1.5:
             angularSpeed += 1.0
             linearSpeed -= 0.6
             break;
 
     for i in range(rightAngle, 135, -1):
-        if lsr[i] < 0.5:
+        if lsr[i] < 1.5:
             angularSpeed -= 1.0
             linearSpeed -= 0.6
             break;
@@ -307,12 +256,17 @@ def setSpeedAndAvoidObstacles(pose, lsr, lsrAngles, angularSpeed, linearSpeed):
     postSpeed(angularSpeed, linearSpeed)
 
 
-def goFast(path):
+
+def goFast(path, q_pure_exit=None):
     """
     Follow the path using pure pursuit along with algorithms to avoid
     obstacles and to take shortcuts if possible.
     Input: path - a path of nodes to follow
     """
+
+    if q_pure_exit != None:
+        q_pure_exit.get()
+
     lsrAngles = getLaserAngles()
     lsr = getLaser()['Echoes']
     pose = getPose()
@@ -322,6 +276,13 @@ def goFast(path):
 
     while not ((curNodeNum == len(path) - 1) and
             (getDistance(pose['Pose']['Position'], path[-1]['Pose']['Position']) < 1.0)):
+
+        if q_pure_exit != None:
+            if not q_pure_exit.empty():
+                q_pure_exit.get()
+                postSpeed(0, 0)
+                logger.info("PURE PURSUIT RETURNED")
+                return
 
         linearSpeed = 1.0 # max is 1
         
@@ -343,16 +304,12 @@ def goFast(path):
         pose = getPose()
         lsr = getLaser()['Echoes']
 
-        shortcutNode = getShortcutNode(pose, curNodeNum, path, lsr, lsrAngles)
-        if shortcutNode > curNodeNum:
-            takeShortcut(pose, curNodeNum, path, shortcutNode)
-            curNodeNum = shortcutNode
-            pose = getPose()
-            lsr = getLaser()['Echoes']
-
         curNodeNum = getNextCarrotNode(pose, curNodeNum, path, lsr, lsrAngles)
         newCarrotPosition = getNextCarrotPosition(pose, curNodeNum, path)
         nextPose = { 'Position' : newCarrotPosition }
+
+        logger.info("curNodeNum: " + str(curNodeNum))
+        logger.info("distance to node: " + str(getDistance(pose['Pose']['Position'], nextPose['Position'])))
 
     postSpeed(0, 0)
    
