@@ -2,9 +2,6 @@ from sys import argv
 import time
 from multiprocessing import Queue, Process
 
-
-from threading import Thread
-
 from path_planner import PathPlanner
 
 from mapper import LaserModel, Map, ShowMap
@@ -70,6 +67,7 @@ def path_planner_job(q_path_in, q_path_out, q_pure_exit, q_showmap_path):
         occupancy_map, robot_cell, goal_point = q_path_in.get()
         while not q_path_in.empty():
             occupancy_map, robot_cell, goal_point = q_path_in.get()
+        #if goal_point: #TODO: check
         path_planner = PathPlanner(occupancy_map)
         path = path_planner.get_path(robot_cell, goal_point)
         logger.info("GOAL POINT: " + str(goal_point))
@@ -90,7 +88,7 @@ def path_planner_job(q_path_in, q_path_out, q_pure_exit, q_showmap_path):
             new_node['Pose']['Position']['Y'] = y
             new_path.append(new_node)
         q_path_out.put(new_path)
-        
+
         #q_path_out.put(path)
         if q_pure_exit.empty():
             q_pure_exit.put(1)
@@ -101,35 +99,31 @@ def path_planner_job(q_path_in, q_path_out, q_pure_exit, q_showmap_path):
             q_showmap_path.put(coord_path)
 
 if __name__ == '__main__':
-    mrds_url = "localhost:50000"
     scale = 2
-    x1 = -60
-    y1 = -60
-    x2 = 60
-    y2 = 60
-    width = x2 - x1
-    height = y2 - y1
-    max_distance = 100
+    laser_max_distance = 100
 
     # TODO: parse arguments and print usage
     if len(argv) == 6:
-        x1 = argv[1]
-        x2 = argv[2]
-        y1 = argv[3]
-        y1 = argv[4]
-        url = argv[5]
-    # else:
-    #    print("Usage: mapper ")
+        mrds_url = argv[1]
+        x1 = int(argv[2])
+        y1 = int(argv[3])
+        x2 = int(argv[4])
+        y2 = int(argv[5])
+        width = x2 - x1
+        height = y2 - y1
+    else:
+        print("Usage: mapper url x1 y1 x2 y2")
+        exit()
 
-        # occupancy_map = Map(width, height, scale)
+
 
 
     controller = FixedController(lookahead=1, mrds_url=mrds_url)
 
     laser_angles = controller.get_laser_scan_angles()
-    laser_model = LaserModel(laser_angles, max_distance)
+    laser_model = LaserModel(laser_angles, laser_max_distance)
 
-    occupancy_map = Map(x1, y1, x2, y2, scale, controller.get_pos())
+    occupancy_map = Map(x1, y1, x2, y2, scale)
 
     
 
@@ -164,13 +158,14 @@ if __name__ == '__main__':
     p4.daemon = False
     p4.start()
 
-    goal_point = (0,0)
+    goal_point = None
 
-    while True:
+    while True:#TODO: while there are unknown cells on the map/no goals?
         laser_scan = controller.get_laser_scan()
         pos, rot = controller.get_pos_and_orientation()
         laser_model.apply_model(occupancy_map, pos, rot, laser_scan)
         robot_cell = occupancy_map.convert_to_grid_indexes(pos.x, pos.y)
+
 
         if q_sm.empty():
             q_sm.put([occupancy_map, laser_model, robot_cell, goal_point])

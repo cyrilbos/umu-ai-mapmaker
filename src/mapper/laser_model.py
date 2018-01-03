@@ -25,10 +25,10 @@ class LaserModel:
     that updates a given map using laser scanner data.
     """
 
-    def __init__(self, laser_angles, max_distance):
+    def __init__(self, laser_angles, laser_max_distance):
         self._laser_angles = laser_angles
-        self._max_distance = max_distance
-        self._p_max = 0.98
+        self._max_distance = laser_max_distance
+        self._p_max = 0.9
 
     @property
     def p_max(self):

@@ -14,7 +14,7 @@ class Map:
         pass
 
     #def __init__(self, real_width, real_height, scale):
-    def __init__(self, x1, y1, x2, y2, scale, init_robot_pos):
+    def __init__(self, x1, y1, x2, y2, scale):
         self._scale = scale  # "squares per meter"
         self._delta_cell = 1 / scale
         #self._real_width = real_width
@@ -30,9 +30,6 @@ class Map:
         # self._grid = [[0.5 for x in range(self._grid_width)] for y in range(self._grid_height)]  # Bayesian init
         self._grid = np.empty((self._grid_width, self._grid_height))
         self._grid[:] = 0.5 # Bayesian init
-
-        # starting world position of the robot, to translate grid position into world position to travel to
-        self._init_robot_pos = init_robot_pos
 
     @property
     def grid_width(self):
@@ -54,12 +51,12 @@ class Map:
         return int(real_value * self._scale)
 
     def convert_to_real_position(self, grid_x, grid_y):
-        # return grid_x / self._scale, grid_y / self._scale
+        #return grid_x / self._scale, grid_y / self._scale
         return (grid_x / self._scale) + self._x1, (grid_y / self._scale) + self._y1
 
-    def convert_to_world_position(self, cell):
-        cell_pos = self.convert_to_real_position(*cell)
-        return cell_pos[0] + self._init_robot_pos.x, cell_pos[1] + self._init_robot_pos.y
+    #def convert_to_world_position(self, cell):
+    #    cell_pos = self.convert_to_real_position(*cell)
+    #    return (cell_pos[0] / self._scale + self._x1 , cell_pos[1] / self._scale + self._y1)
 
     def is_in_bounds(self, cell):
         return 0 <= cell[0] < self._grid_width and 0 <= cell[1] < self._grid_height
@@ -94,5 +91,30 @@ class Map:
         self._grid[grid_x][grid_y] = value
         logger.debug("set grid[x:{}][y:{}]={}".format(grid_x, grid_y, value))
 
+    def is_unexplored(self, cell):
+        return self._grid[cell[0]][cell[1]] == 0.5
+
     def is_an_obstacle(self, cell):
-        return self._grid[cell[0]][cell[1]] > 0.85
+        return self._grid[cell[0]][cell[1]] >= 0.7
+
+    def expanded_obstacles_map(self):
+        def update_and_expand(row, col, value):
+            if (row, col) not in expanded:
+                self._grid[row][col] = value * 0.8
+                expanded.append((row, cell))
+
+
+        expanded = []
+        for row in self._grid:
+            for col in self._grid[row]:
+                cell = (row,col)
+                if self.is_an_obstacle(cell):
+                    value = self._grid[row][col]
+                    #apply mask to extand obstacles
+                    update_and_expand(row - 1, col - 1, 0.8 * value)
+                    update_and_expand(row - 1, col, 0.9 * value)
+                    update_and_expand(row - 1, col + 1, 0.8 * value)
+                    update_and_expand(row, col - 1, 0.9 * value)
+                    update_and_expand(row, col, 0.9 * value)
+                    update_and_expand(row, col + 1, 0.9 * value)
+

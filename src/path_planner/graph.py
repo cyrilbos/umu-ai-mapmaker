@@ -50,34 +50,13 @@ class Graph:
     def get_non_obstacle_neighbours(self, node):
         return [n for n in self._neighbours[node] if not self._map.is_an_obstacle(n)]
 
-    def find_path(self, start, end, path=[]):
-        path = path + [start]
-        if start == end:
-            return path
-        if not self._neighbours[start]:
-            return None
-        for node in self._neighbours[start]:
-            if node not in path:
-                newpath = self.find_path(node, end, path)
-                if newpath: return newpath
-        return None
-
-    def find_shortest_path(self, start, end, path=[]):
-        path = path + [start]
-        if start == end:
-            return path
-        if not self._neighbours[start]:
-            return None
-        shortest = None
-        for node in self._neighbours[start]:
-            if node not in path:
-                newpath = self.find_shortest_path(node, end, path)
-                if newpath:
-                    if not shortest or len(newpath) < len(shortest):
-                        shortest = newpath
-        return shortest
-
     def my_a_star(self, start, goal):
+        """
+            Algorithm presented in the Artificial Intelligence - Fundamentals course.
+            Uses the euclidian distance with cspace grid indexes to compute the heuristic to the goal node.
+            The heuristic from the start node computes the sum of this distance between each node from the current
+            path.
+        """
         def distance(n1, n2):
             return math.sqrt(math.pow(n1[0] - n2[0], 2) + math.pow(n1[1] - n2[1], 2))
 
@@ -107,7 +86,7 @@ class Graph:
                 path.appendleft(node)
             return path
 
-        # store for each neighbour link the node it was added from
+        # this dict stores for each neighbour link the node it was added from
         came_from_previous = {}
 
         current = start
@@ -117,16 +96,26 @@ class Graph:
             key=itemgetter(1))
         while len(neighbours) > 0:
             previous = current
+            #the expanded node is the one of lowest score
             current = neighbours.pop(0)[0]
+
+            # went outside the known map, so use the previous as a subgoal
+            if self._map.is_unexplored(current):
+                return construct_path_to(previous)
 
             came_from_previous[current] = previous
 
             if current == goal:
                 return construct_path_to(current)
 
+
+
             neighbours += get_evaluated_neighbours(current)
             # need to sort the whole list again as new neighbours might have a lower score than previously added nodes
             neighbours = sorted(neighbours, key=itemgetter(1))
 
     def to_coordinates_path(self, graph_path):
-        return [self._map.convert_to_world_position(waypoint) for waypoint in graph_path]
+        """
+        Converts the path given in cspace grid indexes to a path in world position coordinates.
+        """
+        return [self._map.convert_to_real_position(*waypoint) for waypoint in graph_path]

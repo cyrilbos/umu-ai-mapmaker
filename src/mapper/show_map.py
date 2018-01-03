@@ -110,16 +110,16 @@ class ShowMap(object):
         self.__fig.canvas.draw()
 
         # Start a time that saves the image ever n seconds
-        #elapsed_time = time.time() - self.start_time
-        #if elapsed_time >= self.saveMapTime:
-            #self.t = threading.Thread(target=saveMap, args=(self.__fig, self.mapName,))
-            #self.t.start()
-            #self.start_time = time.time()
+        elapsed_time = time.time() - self.start_time
+        if elapsed_time >= self.saveMapTime:
+            self.t = threading.Thread(target=saveMap, args=(self.__fig, self.mapName,))
+            self.t.start()
+            self.start_time = time.time()
 
     def close(self):
         """ Saves the last image before closing the application """
         import matplotlib.pyplot as plt
-        #saveMap(self.__fig, self.mapName)
+        saveMap(self.__fig, self.mapName)
         plt.close()
 
 def saveMap(fig, mapName):
