@@ -57,7 +57,7 @@ class ShowMap(object):
         saveMap(self.__fig, self.mapName)
         self.start_time = time.time()
 
-    def updateMap(self, grid, maxValue, robot_row, robot_col, goal_point):
+    def updateMap(self, grid, maxValue, robot_row, robot_col, goal_point, path):
         import matplotlib.pyplot as plt
         """
         Creates a new BufferedImage from a grid with integer values between 0 - maxVal,
@@ -102,6 +102,9 @@ class ShowMap(object):
         if goal_point:
             x, y = goal_point
             self.__ax.plot(y, x, 'bh', markersize=10)
+        if path:
+            for x, y in path:
+                self.__ax.plot(y, x, 'g+', markersize=2)
 
         # draw new figure
         self.__fig.canvas.draw()

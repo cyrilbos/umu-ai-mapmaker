@@ -31,17 +31,19 @@ def planner_job(q_in, q_out):
         p = planner.closest_frontier_centroid(robot_indexes)
         if p is not None:
             goal_point = p
-            logger.info("new goal point at grid{}={}".format(goal_point, occupancy_map.grid[goal_point[0]][goal_point[1]]))
         q_out.put(goal_point)
         time.sleep(5)
 
-def show_map_job(q_sm, width, height):
+def show_map_job(q_sm, width, height, q_showmap_path):
     show_map = ShowMap(width, height, True)  # rows, cols, showgui
+    path = None
     while True:
         occupancy_map, laser_model, robot_indexes, goal_point = q_sm.get()
         while not q_sm.empty():
             occupancy_map, laser_model, robot_indexes, goal_point = q_sm.get()
-        show_map.updateMap(occupancy_map.grid, laser_model.p_max, robot_indexes[0], robot_indexes[1], goal_point)
+        if not q_showmap_path.empty():
+            path = q_showmap_path.get()
+        show_map.updateMap(occupancy_map.grid, laser_model.p_max, robot_indexes[0], robot_indexes[1], goal_point, path)
 
 def pure_pursuit_job(q_path_out, q_pure_exit):
     #mrds_url = "localhost:50000"
@@ -59,36 +61,42 @@ def pure_pursuit_job(q_path_out, q_pure_exit):
         #controller.pure_pursuit(q_pure_exit)
         logger.info("PURE: NEW PATH")
 
-def path_planner_job(q_path_in, q_path_out, q_pure_exit):
+def path_planner_job(q_path_in, q_path_out, q_pure_exit, q_showmap_path):
     while True:
+        time.sleep(10)
         occupancy_map, robot_cell, goal_point = q_path_in.get()
         while not q_path_in.empty():
             occupancy_map, robot_cell, goal_point = q_path_in.get()
-        if goal_point:
-            path_planner = PathPlanner(occupancy_map)
-            path = path_planner.get_path(robot_cell, goal_point)
-            logger.info("GOAL POINT: " + str(goal_point))
-            x0, y0 = path[0]
-            x, y = path[-1]
-            logger.info("ROBOT POS: " + str(robot_cell))
-            logger.info("FIRST PATH NODE: " + str(occupancy_map.convert_to_grid_indexes(x0, y0)))
-            logger.info("LAST PATH NODE: " + str(occupancy_map.convert_to_grid_indexes(x, y)))
+        #if goal_point: #TODO: check
+        path_planner = PathPlanner(occupancy_map)
+        path = path_planner.get_path(robot_cell, goal_point)
+        logger.info("GOAL POINT: " + str(goal_point))
+        x0, y0 = path[0]
+        x, y = path[-1]
+        logger.info("ROBOT POS: " + str(robot_cell))
+        logger.info("FIRST PATH NODE: " + str(occupancy_map.convert_to_grid_indexes(x0, y0)))
+        logger.info("LAST PATH NODE: " + str(occupancy_map.convert_to_grid_indexes(x, y)))
 
-            new_path = []
-            grid = occupancy_map.grid
+
+        new_path = []
+        grid = occupancy_map.grid
+        for x, y in path:
+            new_node = {}
+            new_node['Pose'] = {}
+            new_node['Pose']['Position'] = {}
+            new_node['Pose']['Position']['X'] = x
+            new_node['Pose']['Position']['Y'] = y
+            new_path.append(new_node)
+        q_path_out.put(new_path)
+
+        #q_path_out.put(path)
+        if q_pure_exit.empty():
+            q_pure_exit.put(1)
+        if q_showmap_path.empty():
+            coord_path = []
             for x, y in path:
-                new_node = {}
-                new_node['Pose'] = {}
-                new_node['Pose']['Position'] = {}
-                new_node['Pose']['Position']['X'] = x
-                new_node['Pose']['Position']['Y'] = y
-                new_path.append(new_node)
-            q_path_out.put(new_path)
-
-            #q_path_out.put(path)
-            if q_pure_exit.empty():
-                q_pure_exit.put(1)
-            time.sleep(10)
+                coord_path.append(occupancy_map.convert_to_grid_indexes(x, y))
+            q_showmap_path.put(coord_path)
 
 if __name__ == '__main__':
     scale = 2
@@ -133,15 +141,16 @@ if __name__ == '__main__':
     q_path_out = Queue()
     q_pure_exit = Queue()
 
+    q_showmap_path = Queue()
 
     p = Process(target=planner_job, args=(q_in, q_out,))
     p.daemon = False
     p.start()
-    p2 = Process(target=show_map_job, args=(q_sm, scale * width, scale * height))
+    p2 = Process(target=show_map_job, args=(q_sm, scale * width, scale * height, q_showmap_path,))
     p2.daemon = False
     p2.start()
 
-    p3 = Process(target=path_planner_job, args=(q_path_in, q_path_out, q_pure_exit,))
+    p3 = Process(target=path_planner_job, args=(q_path_in, q_path_out, q_pure_exit, q_showmap_path,))
     p3.daemon = False
     p3.start()
 
@@ -151,12 +160,11 @@ if __name__ == '__main__':
 
     goal_point = None
 
-    while True:#TODO: while there are unknown cells on the map?
+    while True:#TODO: while there are unknown cells on the map/no goals?
         laser_scan = controller.get_laser_scan()
         pos, rot = controller.get_pos_and_orientation()
         laser_model.apply_model(occupancy_map, pos, rot, laser_scan)
         robot_cell = occupancy_map.convert_to_grid_indexes(pos.x, pos.y)
-        #logger.info("pos {} {} {}".format(pos, robot_cell, occupancy_map.convert_to_real_position(robot_cell[0], robot_cell[1])))
 
 
         if q_sm.empty():

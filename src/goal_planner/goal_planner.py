@@ -5,7 +5,7 @@ OPEN_MAX_VALUE = 0.1
 
 # This is for the apartment, the factory environment could
 # probably use a much higher value
-MIN_NUM_FRONTIER_POINTS = 10
+MIN_NUM_FRONTIER_POINTS = 20
 
 class GoalPlanner:
     """
@@ -168,7 +168,7 @@ class GoalPlanner:
 
         x, y = point
 
-        epsilon = 0.1
+        epsilon = 0.05
         if abs(grid[x][y] - 0.5) > epsilon:
             return False
 
