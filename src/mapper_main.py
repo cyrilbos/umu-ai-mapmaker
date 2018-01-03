@@ -45,34 +45,30 @@ def show_map_job(q_sm, width, height):
 
 
 if __name__ == '__main__':
-    mrds_url = "localhost:50000"
     scale = 2
-    x1 = -60
-    y1 = -60
-    x2 = 60
-    y2 = 60
-    width = x2 - x1
-    height = y2 - y1
-    max_distance = 100
+    laser_max_distance = 100
 
     # TODO: parse arguments and print usage
     if len(argv) == 6:
-        x1 = argv[1]
-        x2 = argv[2]
+        mrds_url = argv[1]
+        x1 = argv[2]
         y1 = argv[3]
-        y1 = argv[4]
-        url = argv[5]
-    # else:
-    #    print("Usage: mapper ")
+        x2 = argv[4]
+        y2 = argv[5]
+        width = x2 - x1
+        height = y2 - y1
+    else:
+        print("Usage: mapper url x1 y1 x2 y2")
+        exit()
 
-        # occupancy_map = Map(width, height, scale)
+
 
 
     controller = FixedController(lookahead=1, mrds_url=mrds_url)
 
 
     laser_angles = controller.get_laser_scan_angles()
-    laser_model = LaserModel(laser_angles, max_distance)
+    laser_model = LaserModel(laser_angles, laser_max_distance)
 
     occupancy_map = Map(x1, y1, x2, y2, scale, controller.get_pos())
 
