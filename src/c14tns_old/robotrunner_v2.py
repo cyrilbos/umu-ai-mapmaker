@@ -209,20 +209,28 @@ def setSpeedAndAvoidObstacles(pose, lsr, lsrAngles, angularSpeed, linearSpeed, c
     for idx, angle in enumerate(lsrAngles):
         if angle < goalAngle:
             goalAngleIdx = idx
+    blocked = False
 
     for i in range(leftAngle, rightAngle + 1):
-        if lsr[i] < 1.3:
+        if lsr[i] < 0.5:
+            blocked = True
             if i < goalAngleIdx:
                 angularSpeed += 2.0
             else:
                 angularSpeed -= 2.0
-            linearSpeed -= 0.7
+            linearSpeed = -0.7
             break;
 
     if linearSpeed < 0:
-        linearSpeed = 0
+        #stop
+        postSpeed(0, 0)
+        time.sleep(0.1)
 
     postSpeed(angularSpeed, linearSpeed)
+    if blocked:
+        #go reverse and plan again
+        time.sleep(0.3)
+        return True
 
 
 def goFast(path, q_pure_exit=None):
@@ -265,7 +273,9 @@ def goFast(path, q_pure_exit=None):
                 linearSpeed -= 0.01
                 angularSpeed = getPureAngularSpeed(pose, nextPose['Position'], linearSpeed)
 
-        setSpeedAndAvoidObstacles(pose, lsr, lsrAngles, angularSpeed, linearSpeed, nextPose['Position'])
+        if setSpeedAndAvoidObstacles(pose, lsr, lsrAngles, angularSpeed, linearSpeed, nextPose['Position']):
+            postSpeed(0,0)
+            return
 
         time.sleep(0.04)
 

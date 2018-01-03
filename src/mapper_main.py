@@ -6,7 +6,7 @@ from path_planner import PathPlanner
 
 from mapper import LaserModel, Map, ShowMap
 
-from controller import FixedController
+from controller import Controller
 
 from goal_planner import GoalPlanner
 
@@ -23,12 +23,12 @@ logger = logging.getLogger(__name__)
 
 def planner_job(q_in, q_out):
     while True:
-        occupancy_map, robot_indexes = q_in.get()
+        occupancy_map, robot_cell = q_in.get()
         while not q_in.empty():
-            occupancy_map, robot_indexes = q_in.get()
+            occupancy_map, robot_cell = q_in.get()
         planner = GoalPlanner(occupancy_map)
         goal_point = (0, 0)
-        p = planner.closest_frontier_centroid(robot_indexes)
+        p = planner.closest_frontier_centroid(robot_cell)
         if p is not None:
             goal_point = p
         q_out.put(goal_point)
@@ -38,12 +38,12 @@ def show_map_job(q_sm, width, height, q_showmap_path):
     show_map = ShowMap(width, height, True)  # rows, cols, showgui
     path = None
     while True:
-        occupancy_map, laser_model, robot_indexes, goal_point = q_sm.get()
+        occupancy_map, laser_model, robot_cell, goal_point = q_sm.get()
         while not q_sm.empty():
-            occupancy_map, laser_model, robot_indexes, goal_point = q_sm.get()
+            occupancy_map, laser_model, robot_cell, goal_point = q_sm.get()
         if not q_showmap_path.empty():
             path = q_showmap_path.get()
-        show_map.updateMap(occupancy_map.grid, laser_model.p_max, robot_indexes[0], robot_indexes[1], goal_point, path)
+        show_map.updateMap(occupancy_map.grid, laser_model.p_max, robot_cell[0], robot_cell[1], goal_point, path)
 
 def pure_pursuit_job(q_path_out, q_pure_exit):
     #mrds_url = "localhost:50000"
@@ -68,7 +68,8 @@ def path_planner_job(q_path_in, q_path_out, q_pure_exit, q_showmap_path):
         while not q_path_in.empty():
             occupancy_map, robot_cell, goal_point = q_path_in.get()
         if goal_point:
-            path_planner = PathPlanner(occupancy_map)
+
+            path_planner = PathPlanner(occupancy_map)#PathPlanner(Map.expanded_obstacles_map(occupancy_map))
             path = path_planner.get_path(robot_cell, goal_point)
             logger.info("GOAL POINT: " + str(goal_point))
             x0, y0 = path[1]
@@ -77,9 +78,8 @@ def path_planner_job(q_path_in, q_path_out, q_pure_exit, q_showmap_path):
             logger.info("FIRST PATH NODE: " + str(occupancy_map.convert_to_grid_indexes(x0, y0)))
             logger.info("LAST PATH NODE: " + str(occupancy_map.convert_to_grid_indexes(x, y)))
 
-
             new_path = []
-            grid = occupancy_map.grid
+
             for x, y in path[1:]:
                 new_node = {}
                 new_node['Pose'] = {}
@@ -89,7 +89,6 @@ def path_planner_job(q_path_in, q_path_out, q_pure_exit, q_showmap_path):
                 new_path.append(new_node)
             q_path_out.put(new_path)
 
-            #q_path_out.put(path)
             if q_pure_exit.empty():
                 q_pure_exit.put(1)
             if q_showmap_path.empty():
@@ -118,7 +117,7 @@ if __name__ == '__main__':
 
 
 
-    controller = FixedController(lookahead=1, mrds_url=mrds_url)
+    controller = Controller(mrds_url=mrds_url)
 
     laser_angles = controller.get_laser_scan_angles()
     laser_model = LaserModel(laser_angles, laser_max_distance)
@@ -130,7 +129,7 @@ if __name__ == '__main__':
     goal_planner = GoalPlanner(occupancy_map)
 
     pos, rot = controller.get_pos_and_orientation()
-    robot_indexes = occupancy_map.convert_to_grid_indexes(pos.x, pos.y)
+    robot_cell = occupancy_map.convert_to_grid_indexes(pos.x, pos.y)
 
     q_in = Queue()
     q_out = Queue()
