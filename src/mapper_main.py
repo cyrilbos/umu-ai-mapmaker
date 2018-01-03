@@ -100,7 +100,7 @@ def path_planner_job(q_path_in, q_path_out, q_pure_exit, q_showmap_path):
 
 if __name__ == '__main__':
     scale = 2
-    laser_max_distance = 80
+    laser_max_distance = 100
 
     # TODO: parse arguments and print usage
     if len(argv) == 6:

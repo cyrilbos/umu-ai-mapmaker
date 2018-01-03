@@ -95,7 +95,7 @@ class Map:
         return self._grid[cell[0]][cell[1]] == 0.5
 
     def is_an_obstacle(self, cell):
-        return self._grid[cell[0]][cell[1]] > 0.7
+        return self._grid[cell[0]][cell[1]] > 0.5
 
     def expanded_obstacles_map(self):
         #TODO: finish it

@@ -198,7 +198,6 @@ def setSpeedAndAvoidObstacles(pose, lsr, lsrAngles, angularSpeed, linearSpeed, c
            angularSpeed - The given angular speed
            linearSpeed - The given linear speed
     '''
-    blocked_left = blocked_right = False
     halfWidth = 29 # in indices
     zeroAngle = 135
     leftAngle = zeroAngle - halfWidth
