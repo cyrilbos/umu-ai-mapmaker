@@ -115,7 +115,7 @@ if __name__ == '__main__':
     laser_angles = controller.get_laser_scan_angles()
     laser_model = LaserModel(laser_angles, laser_max_distance)
 
-    occupancy_map = Map(x1, y1, x2, y2, scale, controller.get_pos())
+    occupancy_map = Map(x1, y1, x2, y2, scale)
 
     
 
@@ -156,6 +156,8 @@ if __name__ == '__main__':
         pos, rot = controller.get_pos_and_orientation()
         laser_model.apply_model(occupancy_map, pos, rot, laser_scan)
         robot_cell = occupancy_map.convert_to_grid_indexes(pos.x, pos.y)
+        #logger.info("pos {} {} {}".format(pos, robot_cell, occupancy_map.convert_to_real_position(robot_cell[0], robot_cell[1])))
+
 
         if q_sm.empty():
             q_sm.put([occupancy_map, laser_model, robot_cell, goal_point])

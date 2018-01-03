@@ -99,10 +99,16 @@ class Graph:
             #the expanded node is the one of lowest score
             current = neighbours.pop(0)[0]
 
+            # went outside the known map, so use the previous as a subgoal
+            if self._map.is_unexplored(current):
+                return construct_path_to(previous)
+
             came_from_previous[current] = previous
 
-            if distance(current, goal) < 20:
+            if current == goal:
                 return construct_path_to(current)
+
+
 
             neighbours += get_evaluated_neighbours(current)
             # need to sort the whole list again as new neighbours might have a lower score than previously added nodes
@@ -112,4 +118,4 @@ class Graph:
         """
         Converts the path given in cspace grid indexes to a path in world position coordinates.
         """
-        return [self._map.convert_to_world_position(waypoint) for waypoint in graph_path]
+        return [self._map.convert_to_real_position(*waypoint) for waypoint in graph_path]
