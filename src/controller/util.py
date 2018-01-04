@@ -13,7 +13,6 @@ Updated by Tobias Nebaeus and Ville Gillström
 	(removed example main function and renamed file to util.py)
 """
 
-MRDS_URL = 'localhost:50000'
 
 import http.client, json, time, sys, argparse, time
 from math import sin, cos, pi, atan2, asin, hypot, pi, sqrt
@@ -23,7 +22,7 @@ class UnexpectedResponse(Exception): pass
 HEADERS = {"Content-type": "application/json", "Accept": "text/json"}
 
 
-def postSpeed(angularSpeed,linearSpeed):
+def postSpeed(MRDS_URL, angularSpeed,linearSpeed):
     """Sends a speed command to the MRDS server"""
     mrds = http.client.HTTPConnection(MRDS_URL)
     params = json.dumps({'TargetAngularSpeed':angularSpeed,'TargetLinearSpeed':linearSpeed})
@@ -36,7 +35,7 @@ def postSpeed(angularSpeed,linearSpeed):
     else:
         raise UnexpectedResponse(response)
 
-def getLaser():
+def getLaser(MRDS_URL):
     """Requests the current laser scan from the MRDS server and parses it into a dict"""
     mrds = http.client.HTTPConnection(MRDS_URL)
     mrds.request('GET','/lokarria/laser/echoes')
@@ -48,7 +47,7 @@ def getLaser():
     else:
         return response
     
-def getLaserAngles():
+def getLaserAngles(MRDS_URL):
     """Requests the current laser properties from the MRDS server and parses it into a dict"""
     mrds = http.client.HTTPConnection(MRDS_URL)
     mrds.request('GET','/lokarria/laser/properties')
@@ -68,7 +67,7 @@ def getLaserAngles():
     else:
         raise UnexpectedResponse(response)
 
-def getPose():
+def getPose(MRDS_URL):
     """Reads the current position and orientation from the MRDS"""
     mrds = http.client.HTTPConnection(MRDS_URL)
     mrds.request('GET','/lokarria/localization')

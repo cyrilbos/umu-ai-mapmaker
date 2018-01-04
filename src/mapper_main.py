@@ -67,7 +67,7 @@ def path_planner_job(q_path_in, q_showmap_path):
                     coord_path.append(occupancy_map.convert_to_grid_indexes(x, y))
                 q_showmap_path.put([coord_path, goal_point])
 
-            goFast(new_path)
+            goFast(new_path, mrds_url)
 
 if __name__ == '__main__':
     scale = 2
