@@ -10,7 +10,7 @@ from controller import Controller
 
 from goal_planner import GoalPlanner
 
-from c14tns_old.robotrunner_v2 import goFast
+from controller.robotrunner_v2 import goFast
 
 import logging
 

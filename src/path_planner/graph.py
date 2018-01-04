@@ -29,7 +29,7 @@ class Graph:
                 self.construct_neighbours(cell)
                 link_total += len(self._neighbours[cell])
 
-        logger.info("Constructed path planner graph with a total of {} cells and {} links".format(
+        logger.debug("Constructed path planner graph with a total of {} cells and {} links".format(
             self._map.grid_width * self._map.grid_height, link_total))
 
     def construct_neighbours(self, node):
@@ -50,9 +50,9 @@ class Graph:
     def get_non_obstacle_neighbours(self, node):
         return [n for n in self._neighbours[node] if not self._map.is_an_obstacle(n)]
 
-    def my_a_star(self, start, goal):
+    def a_star(self, start, goal):
         """
-            Algorithm presented in the Artificial Intelligence - Fundamentals course.
+            Algorithm presented in both AI courses at Umu.
             Uses the euclidian distance with cspace grid indexes to compute the heuristic to the goal node.
             The heuristic from the start node computes the sum of this distance between each node from the current
             path.
@@ -88,7 +88,7 @@ class Graph:
 
         # this dict stores for each neighbour link the node it was added from
         came_from_previous = {}
-
+        depth = 0
         current = start
         # cameFrome is empty, so can't use get_evaluated_neighbours()
         neighbours = sorted(
@@ -98,14 +98,14 @@ class Graph:
             previous = current
             #the expanded node is the one of lowest score
             current = neighbours.pop(0)[0]
-
+            depth+=1
             # went outside the known map, so use the previous as a subgoal
             if self._map.is_unexplored(current):
                 return construct_path_to(previous)
 
             came_from_previous[current] = previous
 
-            if current == goal:
+            if current == goal or depth > 1000:
                 return construct_path_to(current)
 
 

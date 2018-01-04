@@ -11,9 +11,8 @@ Authors: Ville Gillström (oi14vgm@cs.umu.se)
 """
 from logging import getLogger
 from math import atan
-from multiprocessing import Queue
 
-from .util import *
+from controller.util import *
 
 MAX_LOOKAHEAD = 1.4
 MIN_LOOKAHEAD = 0.5
@@ -212,7 +211,7 @@ def setSpeedAndAvoidObstacles(pose, lsr, lsrAngles, angularSpeed, linearSpeed, c
     blocked = False
 
     for i in range(leftAngle, rightAngle + 1):
-        if lsr[i] < 0.5:
+        if lsr[i] < 1:
             blocked = True
             if i < goalAngleIdx:
                 angularSpeed += 2.0
@@ -224,7 +223,7 @@ def setSpeedAndAvoidObstacles(pose, lsr, lsrAngles, angularSpeed, linearSpeed, c
     if linearSpeed < 0:
         #stop
         postSpeed(0, 0)
-        time.sleep(0.1)
+        time.sleep(0.5)
 
     postSpeed(angularSpeed, linearSpeed)
     if blocked:
@@ -286,8 +285,8 @@ def goFast(path, q_pure_exit=None):
         newCarrotPosition = getNextCarrotPosition(pose, curNodeNum, path)
         nextPose = { 'Position' : newCarrotPosition }
 
-        logger.info("Current node: " + str(curNodeNum) + " of " + str(len(path)))
-        logger.info("distance to node: " + str(getDistance(pose['Pose']['Position'], path[curNodeNum]['Pose']['Position'])))
+        logger.debug("Current node: " + str(curNodeNum) + " of " + str(len(path)))
+        logger.debug("distance to node: " + str(getDistance(pose['Pose']['Position'], path[curNodeNum]['Pose']['Position'])))
 
     postSpeed(0, 0)
    

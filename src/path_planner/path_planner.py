@@ -23,6 +23,6 @@ class PathPlanner:
             Returns a path to target_position from robot_position, avoiding known obstacles.
             :rtype List[float]
         """
-        path = self._graph.my_a_star(robot_cell, target_cell)
+        path = self._graph.a_star(robot_cell, target_cell)
         if path is not None: #no path possible
             return self._graph.to_coordinates_path(path)

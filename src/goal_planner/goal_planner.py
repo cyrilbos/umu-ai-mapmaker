@@ -9,13 +9,11 @@ MIN_NUM_FRONTIER_POINTS = 20
 
 class GoalPlanner:
     """
-    Responsible for choosing the next area to explore.
+    Responsible for choosing the next area to explore using a frontier-based method.
 
-    Frontier-based exploration?
+    Input: a CSpace grid produced by the mapper
 
-    Input: a CSpace grid produced by the mapper?
-
-    Output: A goal position (or grid coordinate) to explore?
+    Output: A goal position (or grid coordinate) to explore
     """
 
 
