@@ -73,7 +73,6 @@ if __name__ == '__main__':
     scale = 2
     laser_max_distance = 100
 
-    # TODO: parse arguments and print usage
     if len(argv) == 6:
         mrds_url = argv[1]
         x1 = int(argv[2])
@@ -83,15 +82,9 @@ if __name__ == '__main__':
         width = x2 - x1
         height = y2 - y1
     else:
-        #print("Usage: mapper url x1 y1 x2 y2")
-        #exit()
-        mrds_url = "localhost:50000"
-        x1 = -50
-        y1 = -50
-        x2 = 50
-        y2 = 50
-        width = x2 - x1
-        height = y2 - y1
+        print("Usage: python3 mapper_main.py url x1 y1 x2 y2")
+        exit()
+
 
     controller = Controller(mrds_url=mrds_url)
 
