@@ -7,7 +7,8 @@ from path_planner import PathPlanner
 from mapper import LaserModel, Map, ShowMap
 from controller import Controller
 from goal_planner import GoalPlanner
-from c14tns_old.robotrunner_v2 import goFast
+
+from controller.robotrunner_v2 import goFast
 
 logging.basicConfig(format="[%(asctime)s %(filename)s:%(lineno)s - %(funcName)20s() ] %(message)s",
                     level=logging.INFO)
