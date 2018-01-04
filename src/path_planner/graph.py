@@ -90,7 +90,7 @@ class Graph:
         came_from_previous = {}
         depth = 0
         current = start
-        # cameFrome is empty, so can't use get_evaluated_neighbours()
+        # cameFrom is empty, so can't use get_evaluated_neighbours()
         neighbours = sorted(
             [(neighbour, heuristic(neighbour)) for neighbour in self.get_non_obstacle_neighbours(start)],
             key=itemgetter(1))
@@ -105,7 +105,7 @@ class Graph:
 
             came_from_previous[current] = previous
 
-            if current == goal or depth > 1000:
+            if current == goal or depth > 255:
                 return construct_path_to(current)
 
 

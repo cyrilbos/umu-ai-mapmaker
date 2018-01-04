@@ -211,7 +211,7 @@ def setSpeedAndAvoidObstacles(pose, lsr, lsrAngles, angularSpeed, linearSpeed, c
     blocked = False
 
     for i in range(leftAngle, rightAngle + 1):
-        if lsr[i] < 1.0:
+        if lsr[i] < 0.5:
             blocked = True
             if i < goalAngleIdx:
                 angularSpeed += 1.5
@@ -221,9 +221,11 @@ def setSpeedAndAvoidObstacles(pose, lsr, lsrAngles, angularSpeed, linearSpeed, c
             break;
 
     if blocked:
+        postSpeed(0, 0)
+        time.sleep(0.5)
         #go reverse and plan again
         postSpeed(angularSpeed, -1.0)
-        time.sleep(0.5)
+        time.sleep(1)
         return True
     postSpeed(angularSpeed, linearSpeed)
 
