@@ -83,15 +83,8 @@ if __name__ == '__main__':
         width = x2 - x1
         height = y2 - y1
     else:
-        #print("Usage: mapper url x1 y1 x2 y2")
-        #exit()
-        mrds_url = "localhost:50000"
-        x1 = -50
-        y1 = -50
-        x2 = 50
-        y2 = 50
-        width = x2 - x1
-        height = y2 - y1
+        print("Usage: mapper url x1 y1 x2 y2")
+        exit()
 
     controller = Controller(mrds_url=mrds_url)
 
@@ -122,11 +115,10 @@ if __name__ == '__main__':
         laser_model.apply_model(occupancy_map, pos, rot, laser_scan)
         robot_cell = occupancy_map.convert_to_grid_indexes(pos.x, pos.y)
 
-        if q_sm.empty():
-            q_sm.put([occupancy_map, laser_model, robot_cell])
-
-        if q_path_in.empty():
-            q_path_in.put([occupancy_map, robot_cell])
+        q_sm.put([occupancy_map, laser_model, robot_cell])
+        while not q_path_in.empty():
+            q_path_in.get()
+        q_path_in.put([occupancy_map, robot_cell])
 
         time.sleep(0.1)
 
