@@ -187,7 +187,7 @@ def isObstructed(pose, otherPose, lsr, lsrAngles):
 
     return False
 
-def setSpeedAndAvoidObstacles(pose, lsr, lsrAngles, angularSpeed, linearSpeed, carrotPosition):
+def setSpeedAndAvoidObstacles(mrds_url, pose, lsr, lsrAngles, angularSpeed, linearSpeed, carrotPosition):
     '''
     Adjusts the given angular and linear speeds in order to avoid obstacles
     found by using the laser scanner
@@ -221,16 +221,16 @@ def setSpeedAndAvoidObstacles(pose, lsr, lsrAngles, angularSpeed, linearSpeed, c
             break;
 
     if blocked:
-        postSpeed(0, 0)
+        postSpeed(mrds_url, 0, 0)
         time.sleep(0.5)
         #go reverse and plan again
-        postSpeed(angularSpeed, -1.0)
+        postSpeed(mrds_url, angularSpeed, -1.0)
         time.sleep(1)
         return True
-    postSpeed(angularSpeed, linearSpeed)
+    postSpeed(mrds_url, angularSpeed, linearSpeed)
 
 
-def goFast(path, q_pure_exit=None):
+def goFast(path, mrds_url, q_pure_exit=None):
     """
     Follow the path using pure pursuit along with algorithms to avoid
     obstacles and to take shortcuts if possible.
@@ -240,9 +240,9 @@ def goFast(path, q_pure_exit=None):
     if q_pure_exit != None:
         q_pure_exit.get()
 
-    lsrAngles = getLaserAngles()
-    lsr = getLaser()['Echoes']
-    pose = getPose()
+    lsrAngles = getLaserAngles(mrds_url)
+    lsr = getLaser(mrds_url)['Echoes']
+    pose = getPose(mrds_url)
     startNodeNum = 0
     curNodeNum = getNextCarrotNode(pose, startNodeNum, path, lsr, lsrAngles)
     nextPose = path[curNodeNum]['Pose']
@@ -253,7 +253,7 @@ def goFast(path, q_pure_exit=None):
         if q_pure_exit != None:
             if not q_pure_exit.empty():
                 q_pure_exit.get()
-                postSpeed(0, 0)
+                postSpeed(mrds_url, 0, 0)
                 logger.info("PURE PURSUIT RETURNED")
                 return
 
@@ -270,14 +270,14 @@ def goFast(path, q_pure_exit=None):
                 linearSpeed -= 0.01
                 angularSpeed = getPureAngularSpeed(pose, nextPose['Position'], linearSpeed)
 
-        if setSpeedAndAvoidObstacles(pose, lsr, lsrAngles, angularSpeed, linearSpeed, nextPose['Position']):
-            postSpeed(0,0)
+        if setSpeedAndAvoidObstacles(mrds_url, pose, lsr, lsrAngles, angularSpeed, linearSpeed, nextPose['Position']):
+            postSpeed(mrds_url, 0,0)
             return
 
         time.sleep(0.04)
 
-        pose = getPose()
-        lsr = getLaser()['Echoes']
+        pose = getPose(mrds_url)
+        lsr = getLaser(mrds_url)['Echoes']
 
         curNodeNum = getNextCarrotNode(pose, curNodeNum, path, lsr, lsrAngles)
         newCarrotPosition = getNextCarrotPosition(pose, curNodeNum, path)
@@ -286,7 +286,7 @@ def goFast(path, q_pure_exit=None):
         logger.debug("Current node: " + str(curNodeNum) + " of " + str(len(path)))
         logger.debug("distance to node: " + str(getDistance(pose['Pose']['Position'], path[curNodeNum]['Pose']['Position'])))
 
-    postSpeed(0, 0)
+    postSpeed(mrds_url, 0, 0)
    
     
 ###############################################################################
