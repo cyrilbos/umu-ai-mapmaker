@@ -22,7 +22,7 @@ ROBOT_WIDTH = 0.9 # actual is 0.4
 
 logger = getLogger(__name__)
 
-g_lookahead = 1.0
+g_lookahead = 0.8
 def isWithinLOOKAHEAD(position, nextPosition):
     """
      Checks whether the distance between two positions is less than LOOKAHEAD
@@ -212,25 +212,21 @@ def setSpeedAndAvoidObstacles(pose, lsr, lsrAngles, angularSpeed, linearSpeed, c
     blocked = False
 
     for i in range(leftAngle, rightAngle + 1):
-        if lsr[i] < 0.5:
+        if lsr[i] < 1.3:
             blocked = True
             if i < goalAngleIdx:
-                angularSpeed += 2.0
+                angularSpeed += 1.5
             else:
-                angularSpeed -= 2.0
-            linearSpeed = -0.7
+                angularSpeed -= 1.5
+            linearSpeed -= -0.7
             break;
 
-    if linearSpeed < 0:
-        #stop
-        postSpeed(0, 0)
-        time.sleep(0.1)
-
-    postSpeed(angularSpeed, linearSpeed)
     if blocked:
         #go reverse and plan again
-        time.sleep(0.3)
+        postSpeed(angularSpeed, -1.0)
+        time.sleep(0.5)
         return True
+    postSpeed(angularSpeed, linearSpeed)
 
 
 def goFast(path, q_pure_exit=None):
