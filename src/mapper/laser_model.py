@@ -1,5 +1,5 @@
 from logging import getLogger
-from math import atan2, pi, cos, sin
+from math import atan2, pi, cos, sin, hypot
 
 import math
 
@@ -108,12 +108,17 @@ class LaserModel:
             if cell not in updated_cells and grid.is_in_bounds(cell):
 
                 # alpha angle is supposed to be 0 (straight line), so beta - 0 / beta = 1
-                r = np.linalg.norm(cell[0] - robot_cell[0]) #euclidian distance between cell and robot
-                occupied_probability = (((R - r) / R) + 1) / 2 * self._p_max
-                previous_probability = grid.get_occupancy_idx(cell)
-                # empty probability, so passing 1 - occupied_probability
-                grid.set_occupancy_idx(cell, self.bayesian_probability(1 - occupied_probability, previous_probability))
-                updated_cells.append(cell)
+                #r = np.linalg.norm(cell[0] - robot_cell[0]) #euclidian distance between cell and robot
+                real_cell = grid.convert_to_real_position(cell[0], cell[1])
+                real_robot_cell = grid.convert_to_real_position(robot_cell[0], robot_cell[1])
+                r = hypot(real_cell[0] - real_robot_cell[0], real_cell[1] - real_robot_cell[1])
+
+                if r < R - 3:
+                    occupied_probability = (((R - r) / R) + 1) / 2 * self._p_max
+                    previous_probability = grid.get_occupancy_idx(cell)
+                    # empty probability, so passing 1 - occupied_probability
+                    grid.set_occupancy_idx(cell, self.bayesian_probability(1 - occupied_probability, previous_probability))
+                    updated_cells.append(cell)
             error = error + deltaerr
             while error >= 0.5:
                 y = y + math.copysign(1, deltay)  # math.copysign(1,x) means sign(x)
