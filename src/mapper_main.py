@@ -24,22 +24,26 @@ def show_map_job(q_sm, width, height, q_showmap_path):
             occupancy_map, laser_model, robot_cell = q_sm.get()
         if not q_showmap_path.empty():
             path, goal_point = q_showmap_path.get()
-        show_map.updateMap(occupancy_map.grid, laser_model.p_max, robot_cell[0], robot_cell[1], goal_point, path)
+        #expanded_map = Map.expanded_obstacles_map(occupancy_map)
+        expanded_map = occupancy_map.navigation_map()
+        show_map.updateMap(expanded_map.grid, laser_model.p_max, robot_cell[0], robot_cell[1], goal_point, path)
 
-def path_planner_job(q_path_in, q_showmap_path):
+def path_planner_job(q_path_in, q_showmap_path, mrds_url):
     while True:
         occupancy_map, robot_cell = q_path_in.get()
         while not q_path_in.empty():
             occupancy_map, robot_cell = q_path_in.get()
 
-        planner = GoalPlanner(occupancy_map)
+        logger.info("Finding goal point")
+        planner = GoalPlanner(occupancy_map.navigation_map())
         goal_point = (0, 0)
         p = planner.closest_frontier_centroid(robot_cell)
         if p is not None:
             goal_point = p
 
         if goal_point:
-            path_planner = PathPlanner(occupancy_map)#PathPlanner(Map.expanded_obstacles_map(occupancy_map))
+            logger.info("Calculating path")
+            path_planner = PathPlanner(occupancy_map.navigation_map())#PathPlanner(Map.expanded_obstacles_map(occupancy_map))
             path = path_planner.get_path(robot_cell, goal_point)
             if len(path) <= 1:
                 continue
@@ -67,11 +71,12 @@ def path_planner_job(q_path_in, q_showmap_path):
                     coord_path.append(occupancy_map.convert_to_grid_indexes(x, y))
                 q_showmap_path.put([coord_path, goal_point])
 
+            logger.info("Following path using pp")
             goFast(new_path, mrds_url)
 
 if __name__ == '__main__':
     scale = 2
-    laser_max_distance = 100
+    laser_max_distance = 40
 
     if len(argv) == 6:
         mrds_url = argv[1]
@@ -82,8 +87,15 @@ if __name__ == '__main__':
         width = x2 - x1
         height = y2 - y1
     else:
-        print("Usage: python3 mapper_main.py url x1 y1 x2 y2")
-        exit()
+        #print("Usage: python3 mapper_main.py url x1 y1 x2 y2")
+        #exit()
+        mrds_url = "localhost:50000"
+        x1 = -50
+        y1 = -50
+        x2 = 50
+        y2 = 50
+        width = x2 - x1
+        height = y2 - y1
 
     controller = Controller(mrds_url=mrds_url)
 
@@ -103,7 +115,7 @@ if __name__ == '__main__':
     p1 = Process(target=show_map_job, args=(q_sm, scale * width, scale * height, q_showmap_path,))
     p1.daemon = False
     p1.start()
-    p2 = Process(target=path_planner_job, args=(q_path_in, q_showmap_path,))
+    p2 = Process(target=path_planner_job, args=(q_path_in, q_showmap_path,mrds_url,))
     p2.daemon = False
     p2.start()
 

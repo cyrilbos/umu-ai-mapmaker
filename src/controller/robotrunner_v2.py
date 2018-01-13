@@ -211,7 +211,7 @@ def setSpeedAndAvoidObstacles(mrds_url, pose, lsr, lsrAngles, angularSpeed, line
     blocked = False
 
     for i in range(leftAngle, rightAngle + 1):
-        if lsr[i] < 0.5:
+        if lsr[i] < 0.35:
             blocked = True
             if i < goalAngleIdx:
                 angularSpeed += 1.5

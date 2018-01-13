@@ -24,7 +24,7 @@ class ShowMap(object):
         """
         import matplotlib
         if not showGUI:
-            matplotlib.use('Agg')
+            matplotlib.use('GTKAgg')
         import matplotlib.pyplot as plt
 
         self.saveMapTime = 5.0
