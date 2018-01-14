@@ -2,6 +2,7 @@ import time
 import logging
 from sys import argv
 from multiprocessing import Queue, Process
+from heapq import *
 
 from path_planner import PathPlanner
 from mapper import LaserModel, Map, ShowMap
@@ -14,6 +15,63 @@ logging.basicConfig(format="[%(asctime)s %(filename)s:%(lineno)s - %(funcName)20
                     level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+##############################################################
+# Didn't write this A* implementation, so I don't think we can use it,
+# but it's useful for testing.
+# (code.activestate.com/recipes/578919-python-a-pathfinding-with-binary-heap/)
+def heuristic(a, b):
+    return (b[0] - a[0]) ** 2 + (b[1] - a[1]) ** 2
+
+def astar(array, start, goal):
+
+    neighbors = [(0,1),(0,-1),(1,0),(-1,0),(1,1),(1,-1),(-1,1),(-1,-1)]
+
+    close_set = set()
+    came_from = {}
+    gscore = {start:0}
+    fscore = {start:heuristic(start, goal)}
+    oheap = []
+
+    heappush(oheap, (fscore[start], start))
+    
+    while oheap:
+
+        current = heappop(oheap)[1]
+
+        if current == goal:
+            data = []
+            while current in came_from:
+                data.append(current)
+                current = came_from[current]
+            return data
+
+        close_set.add(current)
+        for i, j in neighbors:
+            neighbor = current[0] + i, current[1] + j            
+            tentative_g_score = gscore[current] + heuristic(current, neighbor)
+            if 0 <= neighbor[0] < array.shape[0]:
+                if 0 <= neighbor[1] < array.shape[1]:                
+                    if array[neighbor[0]][neighbor[1]] == 1:
+                        continue
+                else:
+                    # array bound y walls
+                    continue
+            else:
+                # array bound x walls
+                continue
+                
+            if neighbor in close_set and tentative_g_score >= gscore.get(neighbor, 0):
+                continue
+                
+            if  tentative_g_score < gscore.get(neighbor, 0) or neighbor not in [i[1]for i in oheap]:
+                came_from[neighbor] = current
+                gscore[neighbor] = tentative_g_score
+                fscore[neighbor] = tentative_g_score + heuristic(neighbor, goal)
+                heappush(oheap, (fscore[neighbor], neighbor))
+                
+    return False
+#################################################################
+
 def show_map_job(q_sm, width, height, q_showmap_path):
     show_map = ShowMap(width, height, True)  # rows, cols, showgui
     goal_point = (0, 0)
@@ -23,10 +81,10 @@ def show_map_job(q_sm, width, height, q_showmap_path):
         while not q_sm.empty():
             occupancy_map, laser_model, robot_cell = q_sm.get()
         if not q_showmap_path.empty():
-            path, goal_point = q_showmap_path.get()
-        #expanded_map = Map.expanded_obstacles_map(occupancy_map)
-        expanded_map = occupancy_map.navigation_map()
-        show_map.updateMap(expanded_map.grid, laser_model.p_max, robot_cell[0], robot_cell[1], goal_point, path)
+            while not q_showmap_path.empty():
+                path, goal_point = q_showmap_path.get()
+        #expanded_map = occupancy_map.navigation_map()
+        show_map.updateMap(occupancy_map.grid, laser_model.p_max, robot_cell[0], robot_cell[1], goal_point, path)
 
 def path_planner_job(q_path_in, q_showmap_path, mrds_url):
     while True:
@@ -40,42 +98,49 @@ def path_planner_job(q_path_in, q_showmap_path, mrds_url):
         p = planner.closest_frontier_centroid(robot_cell)
         if p is not None:
             goal_point = p
+        
+        q_showmap_path.put([None, goal_point])
 
         if goal_point:
+            #logger.info("goal point: " + str(goal_point))
+            #logger.info("path: " + str(astar(occupancy_map.navigation_map().grid, robot_cell, goal_point)))
             logger.info("Calculating path")
-            path_planner = PathPlanner(occupancy_map.navigation_map())#PathPlanner(Map.expanded_obstacles_map(occupancy_map))
-            path = path_planner.get_path(robot_cell, goal_point)
+            #path_planner = PathPlanner(occupancy_map.navigation_map())#PathPlanner(Map.expanded_obstacles_map(occupancy_map))
+            #path = path_planner.get_path(robot_cell, goal_point)
+            path = astar(occupancy_map.navigation_map().grid, robot_cell, goal_point)
+            if not path:
+                continue
             if len(path) <= 1:
                 continue
-            logger.info("GOAL POINT: " + str(goal_point))
-            x0, y0 = path[1]
-            x, y = path[-1]
-            logger.info("ROBOT POS: " + str(robot_cell))
-            logger.info("FIRST PATH NODE: " + str(occupancy_map.convert_to_grid_indexes(x0, y0)))
-            logger.info("LAST PATH NODE: " + str(occupancy_map.convert_to_grid_indexes(x, y)))
 
             # For compatibility with the pure pursuit implementation
             new_path = []
-            for x, y in path[1:]:
+            weird_path = []
+            for xg, yg in path[1:]:
+                x, y = occupancy_map.convert_to_real_position(xg, yg)
+                xx, yy = occupancy_map.convert_to_grid_indexes(x, y)
+                weird_path.append((xx, yy))
                 new_node = {}
                 new_node['Pose'] = {}
                 new_node['Pose']['Position'] = {}
                 new_node['Pose']['Position']['X'] = x
                 new_node['Pose']['Position']['Y'] = y
                 new_path.append(new_node)
+            new_path.reverse()
 
             # Send the path to the gui
-            if q_showmap_path.empty():
-                coord_path = []
-                for x, y in path:
-                    coord_path.append(occupancy_map.convert_to_grid_indexes(x, y))
-                q_showmap_path.put([coord_path, goal_point])
+            #coord_path = []
+            #for x, y in path:
+            #    coord_path.append(occupancy_map.convert_to_grid_indexes(x, y))
+            #q_showmap_path.put([coord_path, goal_point])
+
+            q_showmap_path.put([weird_path, goal_point])
 
             logger.info("Following path using pp")
             goFast(new_path, mrds_url)
 
 if __name__ == '__main__':
-    scale = 2
+    scale = 1
     laser_max_distance = 40
 
     if len(argv) == 6:
@@ -90,10 +155,10 @@ if __name__ == '__main__':
         #print("Usage: python3 mapper_main.py url x1 y1 x2 y2")
         #exit()
         mrds_url = "localhost:50000"
-        x1 = -50
-        y1 = -50
-        x2 = 50
-        y2 = 50
+        x1 = -20
+        y1 = -20
+        x2 = 40
+        y2 = 40
         width = x2 - x1
         height = y2 - y1
 

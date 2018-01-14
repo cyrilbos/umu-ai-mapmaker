@@ -280,6 +280,7 @@ def goFast(path, mrds_url, q_pure_exit=None):
         lsr = getLaser(mrds_url)['Echoes']
 
         curNodeNum = getNextCarrotNode(pose, curNodeNum, path, lsr, lsrAngles)
+        logger.info("CurNodeNum: " + str(curNodeNum) + " of " + str(len(path)))
         newCarrotPosition = getNextCarrotPosition(pose, curNodeNum, path)
         nextPose = { 'Position' : newCarrotPosition }
 

@@ -29,8 +29,11 @@ class GoalPlanner:
         frontiers = self.find_frontiers(self._cspace_map, robot_indexes)
         if not frontiers:
             return None
-        frontier_centroids = self.find_centroids(frontiers)
-        return min(frontier_centroids, key=lambda p: self._distance(p, robot_indexes))
+        #frontier_centroids = self.find_centroids(frontiers)
+        #return min(frontier_centroids, key=lambda p: self._distance(p, robot_indexes))
+        best_frontier = min(frontiers, key=lambda f: self._distance(self.centroid(f), robot_indexes))
+
+        return list(best_frontier)[0]
 
     def find_centroids(self, frontiers):
         return [self.centroid(f) for f in frontiers]
@@ -166,7 +169,7 @@ class GoalPlanner:
 
         x, y = point
 
-        epsilon = 0.1
+        epsilon = 0.3
         if abs(grid[x][y] - 0.5) > epsilon:
             return False
 
