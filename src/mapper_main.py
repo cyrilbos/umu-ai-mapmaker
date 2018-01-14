@@ -86,7 +86,7 @@ def show_map_job(q_sm, width, height, q_showmap_path):
         #expanded_map = occupancy_map.navigation_map()
         show_map.updateMap(occupancy_map.grid, laser_model.p_max, robot_cell[0], robot_cell[1], goal_point, path)
 
-def path_planner_job(q_path_in, q_showmap_path, mrds_url):
+def path_planner_job(q_path_in, q_showmap_path, mrds_url, starting_pos):
     while True:
         occupancy_map, robot_cell = q_path_in.get()
         while not q_path_in.empty():
@@ -94,7 +94,7 @@ def path_planner_job(q_path_in, q_showmap_path, mrds_url):
 
         logger.info("Finding goal point")
         planner = GoalPlanner(occupancy_map.navigation_map())
-        goal_point = (0, 0)
+        goal_point = starting_pos
         p = planner.closest_frontier_centroid(robot_cell)
         if p is not None:
             goal_point = p
@@ -138,7 +138,7 @@ def path_planner_job(q_path_in, q_showmap_path, mrds_url):
             goFast(new_path, mrds_url)
 
 if __name__ == '__main__':
-    scale = 1
+    scale = 2
     laser_max_distance = 40
 
     if len(argv) == 6:
@@ -169,6 +169,7 @@ if __name__ == '__main__':
 
     pos, rot = controller.get_pos_and_orientation()
     robot_cell = occupancy_map.convert_to_grid_indexes(pos.x, pos.y)
+    starting_pos = robot_cell
 
     q_sm = Queue()
     q_path_in = Queue()
@@ -178,7 +179,7 @@ if __name__ == '__main__':
     p1 = Process(target=show_map_job, args=(q_sm, scale * width, scale * height, q_showmap_path,))
     p1.daemon = False
     p1.start()
-    p2 = Process(target=path_planner_job, args=(q_path_in, q_showmap_path,mrds_url,))
+    p2 = Process(target=path_planner_job, args=(q_path_in, q_showmap_path,mrds_url, starting_pos,))
     p2.daemon = False
     p2.start()
 
@@ -189,7 +190,8 @@ if __name__ == '__main__':
         laser_model.apply_model(occupancy_map, pos, rot, laser_scan)
         robot_cell = occupancy_map.convert_to_grid_indexes(pos.x, pos.y)
 
-        q_sm.put([occupancy_map, laser_model, robot_cell])
+        if q_sm.empty():
+            q_sm.put([occupancy_map, laser_model, robot_cell])
         while not q_path_in.empty():
             q_path_in.get()
         q_path_in.put([occupancy_map, robot_cell])

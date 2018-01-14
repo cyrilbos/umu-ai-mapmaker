@@ -214,9 +214,9 @@ def setSpeedAndAvoidObstacles(mrds_url, pose, lsr, lsrAngles, angularSpeed, line
         if lsr[i] < 0.4:
             blocked = True
             if i < goalAngleIdx:
-                angularSpeed += 1.5
+                angularSpeed += 0.5
             else:
-                angularSpeed -= 1.5
+                angularSpeed -= 0.5
             linearSpeed -= -0.7
             break;
 
@@ -224,8 +224,8 @@ def setSpeedAndAvoidObstacles(mrds_url, pose, lsr, lsrAngles, angularSpeed, line
         postSpeed(mrds_url, 0, 0)
         time.sleep(0.5)
         #go reverse and plan again
-        postSpeed(mrds_url, angularSpeed, -1.0)
-        time.sleep(1)
+        postSpeed(mrds_url, angularSpeed, -0.5)
+        time.sleep(2)
         return True
     postSpeed(mrds_url, angularSpeed, linearSpeed)
 
