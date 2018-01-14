@@ -87,7 +87,7 @@ def show_map_job(q_sm, width, height, q_showmap_path):
         # expanded_map = occupancy_map.navigation_map().navigation_map()
         show_map.updateMap(occupancy_map.grid, laser_model.p_max, robot_cell[0], robot_cell[1], goal_point, path)
 
-def path_planner_job(q_path_in, q_showmap_path, mrds_url, starting_pos):
+def path_planner_job(q_path_in, q_showmap_path, mrds_url, starting_pos, sound):
     while True:
         occupancy_map, robot_cell = q_path_in.get()
         while not q_path_in.empty():
@@ -121,7 +121,7 @@ def path_planner_job(q_path_in, q_showmap_path, mrds_url, starting_pos):
 
             # For compatibility with the pure pursuit implementation
             new_path = []
-            for xg, yg in path[1:]:
+            for xg, yg in path:
                 #x, y = occupancy_map.convert_to_real_position(xg, yg)
                 x, y = occupancy_map.center_of_cell(xg, yg)
                 new_node = {}
@@ -135,7 +135,7 @@ def path_planner_job(q_path_in, q_showmap_path, mrds_url, starting_pos):
             q_showmap_path.put([path, goal_point])
 
             logger.info("Following path using pp")
-            goFast(new_path, mrds_url)
+            goFast(new_path, mrds_url, sound)
 
 if __name__ == '__main__':
     scale = 2
@@ -149,16 +149,19 @@ if __name__ == '__main__':
         y2 = int(argv[5])
         width = x2 - x1
         height = y2 - y1
+        sound = False
     else:
         #print("Usage: python3 mapper_main.py url x1 y1 x2 y2")
         #exit()
+        # Temporary debug settings
         mrds_url = "localhost:50000"
         x1 = -50
         y1 = -20
-        x2 = 80
-        y2 = 80
+        x2 = 70
+        y2 = 70
         width = x2 - x1
         height = y2 - y1
+        sound = True
 
     controller = Controller(mrds_url=mrds_url)
 
@@ -179,7 +182,7 @@ if __name__ == '__main__':
     p1 = Process(target=show_map_job, args=(q_sm, scale * width, scale * height, q_showmap_path,))
     p1.daemon = False
     p1.start()
-    p2 = Process(target=path_planner_job, args=(q_path_in, q_showmap_path,mrds_url, starting_pos,))
+    p2 = Process(target=path_planner_job, args=(q_path_in, q_showmap_path,mrds_url, starting_pos, sound,))
     p2.daemon = False
     p2.start()
 

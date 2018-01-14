@@ -191,7 +191,7 @@ def isObstructed(pose, otherPose, lsr, lsrAngles):
 
     return False
 
-def setSpeedAndAvoidObstacles(mrds_url, pose, lsr, lsrAngles, angularSpeed, linearSpeed, carrotPosition):
+def setSpeedAndAvoidObstacles(mrds_url, sound, pose, lsr, lsrAngles, angularSpeed, linearSpeed, carrotPosition):
     '''
     Adjusts the given angular and linear speeds in order to avoid obstacles
     found by using the laser scanner
@@ -239,10 +239,12 @@ def setSpeedAndAvoidObstacles(mrds_url, pose, lsr, lsrAngles, angularSpeed, line
 
     if blocked:
         if is_right_angle:
-            winsound.Beep(2500, 50)
+            if sound:
+                winsound.Beep(2500, 50)
             angularSpeed -= 1.75
         else:
-            winsound.Beep(5000, 50)
+            if sound:
+                winsound.Beep(1500, 50)
             angularSpeed += 1.75
         linearSpeed = 0.1
 
@@ -263,32 +265,28 @@ def reposition(mrds_url):
     time.sleep(2.5)
     postSpeed(mrds_url, 0, 0)
 
-def goFast(path, mrds_url, q_pure_exit=None):
+def goFast(path, mrds_url, sound=False):
     """
     Follow the path using pure pursuit along with algorithms to avoid
     obstacles and to take shortcuts if possible.
     Input: path - a path of nodes to follow
     """
 
-    if q_pure_exit != None:
-        q_pure_exit.get()
-
     lsrAngles = getLaserAngles(mrds_url)
     lsr = getLaser(mrds_url)['Echoes']
     pose = getPose(mrds_url)
     startNodeNum = 0
-    curNodeNum = getNextCarrotNode(pose, startNodeNum, path, lsr, lsrAngles)
+    logger.info("SIIIIZE:")
+    logger.info(len(path))
+    if len(path) > 1:
+        curNodeNum = getNextCarrotNode(pose, startNodeNum, path, lsr, lsrAngles)
+    else:
+        curNodeNum = startNodeNum
+
     nextPose = path[curNodeNum]['Pose']
 
     while not ((curNodeNum == len(path) - 1) and
-            (getDistance(pose['Pose']['Position'], path[-1]['Pose']['Position']) < 1.0)):
-
-        if q_pure_exit != None:
-            if not q_pure_exit.empty():
-                q_pure_exit.get()
-                postSpeed(mrds_url, 0, 0)
-                logger.info("PURE PURSUIT RETURNED")
-                return
+            (getDistance(pose['Pose']['Position'], path[-1]['Pose']['Position']) < 0.7)):
 
         linearSpeed = 1.0 # max is 1
         
@@ -303,7 +301,7 @@ def goFast(path, mrds_url, q_pure_exit=None):
                 linearSpeed -= 0.01
                 angularSpeed = getPureAngularSpeed(pose, nextPose['Position'], linearSpeed)
 
-        if setSpeedAndAvoidObstacles(mrds_url, pose, lsr, lsrAngles, angularSpeed, linearSpeed, nextPose['Position']):
+        if setSpeedAndAvoidObstacles(mrds_url, sound, pose, lsr, lsrAngles, angularSpeed, linearSpeed, nextPose['Position']):
             postSpeed(mrds_url, 0,0)
             return
 

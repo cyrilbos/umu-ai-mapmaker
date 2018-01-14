@@ -64,6 +64,8 @@ class LaserModel:
         R = self._max_distance
 
         for idx, laser_angle in enumerate(self._laser_angles):
+            if (idx % 2 == 0):
+                continue
             r = distance = laser_scan['Echoes'][idx]
             #if distance > self._max_distance:
             #    continue
@@ -83,15 +85,17 @@ class LaserModel:
             logger.debug("hit cell [{}][{}]".format(hit_cell[0], hit_cell[1]))
 
             robot_cell = grid.convert_to_grid_indexes(robot_pos.x, robot_pos.y)
+      
+            # region 2 = cells between the robot cell and the hit cell
+            self.bresenham_line(hit_cell, robot_cell, grid, R)
+
             if grid.is_in_bounds(hit_cell) and distance < self._max_distance:
                 logger.debug("hit cell [{}][{}]".format(robot_cell[0], robot_cell[1]))
                 # region 1 = hit cell
                 # alpha angle = 0
-                occupied_probability = (((R - r) / R) + 1) / 2 * self._p_max
+                occupied_probability = ((((R - r) / R) + 1) / 2 * self._p_max)
                 grid.set_occupancy(laser_hit_x, laser_hit_y, self.bayesian_probability(occupied_probability,
                                                                                        grid.get_occupancy(laser_hit_x, laser_hit_y)))
-            # region 2 = cells between the robot cell and the hit cell
-            self.bresenham_line(hit_cell, robot_cell, grid, R)
 
 
     def bresenham_line(self, hit_cell, robot_cell, grid, R):
@@ -105,6 +109,9 @@ class LaserModel:
 
         for x in range(robot_cell[0], hit_cell[0], int(math.copysign(1, deltax))):
             cell = (int(x),int(y))
+            if x == hit_cell[0] + int(math.copysign(1, deltax)) * 5:
+                logger.info("returned!!!!!!!!")
+                return
             if cell not in updated_cells and grid.is_in_bounds(cell):
 
                 # alpha angle is supposed to be 0 (straight line), so beta - 0 / beta = 1

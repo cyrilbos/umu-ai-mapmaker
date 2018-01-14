@@ -101,7 +101,7 @@ class ShowMap(object):
         # plot the goal point
         if goal_point:
             x, y = goal_point
-            self.__ax.plot(y, x, 'bh', markersize=10)
+            self.__ax.plot(y, x, 'bh', markersize=6)
         if path:
             for x, y in path:
                 self.__ax.plot(y, x, 'g+', markersize=2)
