@@ -115,11 +115,9 @@ def path_planner_job(q_path_in, q_showmap_path, mrds_url):
 
             # For compatibility with the pure pursuit implementation
             new_path = []
-            weird_path = []
             for xg, yg in path[1:]:
-                x, y = occupancy_map.convert_to_real_position(xg, yg)
-                xx, yy = occupancy_map.convert_to_grid_indexes(x, y)
-                weird_path.append((xx, yy))
+                #x, y = occupancy_map.convert_to_real_position(xg, yg)
+                x, y = occupancy_map.center_of_cell(xg, yg)
                 new_node = {}
                 new_node['Pose'] = {}
                 new_node['Pose']['Position'] = {}
@@ -134,7 +132,7 @@ def path_planner_job(q_path_in, q_showmap_path, mrds_url):
             #    coord_path.append(occupancy_map.convert_to_grid_indexes(x, y))
             #q_showmap_path.put([coord_path, goal_point])
 
-            q_showmap_path.put([weird_path, goal_point])
+            q_showmap_path.put([path, goal_point])
 
             logger.info("Following path using pp")
             goFast(new_path, mrds_url)
@@ -196,7 +194,7 @@ if __name__ == '__main__':
             q_path_in.get()
         q_path_in.put([occupancy_map, robot_cell])
 
-        time.sleep(0.1)
+        time.sleep(0.075)
 
     p.join()
 

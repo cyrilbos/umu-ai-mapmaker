@@ -40,6 +40,10 @@ class Map:
     def grid(self):
         return self._grid
 
+    def center_of_cell(self, x, y):
+        xr, yr = self.convert_to_real_position(x, y)
+        return (xr + self._scale / 2, yr + self._scale / 2)
+
     def convert_to_grid_indexes(self, x, y):
         # return self.convert_to_grid_index(x), self.convert_to_grid_index(y)
         return self.convert_to_grid_index(x - self._x1), self.convert_to_grid_index(y - self._y1)
