@@ -65,8 +65,8 @@ class LaserModel:
 
         for idx, laser_angle in enumerate(self._laser_angles):
             r = distance = laser_scan['Echoes'][idx]
-            if distance > self._max_distance:
-                continue
+            #if distance > self._max_distance:
+            #    continue
 
             angle = robot_angle + laser_angle
 
@@ -83,7 +83,7 @@ class LaserModel:
             logger.debug("hit cell [{}][{}]".format(hit_cell[0], hit_cell[1]))
 
             robot_cell = grid.convert_to_grid_indexes(robot_pos.x, robot_pos.y)
-            if grid.is_in_bounds(hit_cell):
+            if grid.is_in_bounds(hit_cell) and distance < self._max_distance:
                 logger.debug("hit cell [{}][{}]".format(robot_cell[0], robot_cell[1]))
                 # region 1 = hit cell
                 # alpha angle = 0
@@ -113,7 +113,7 @@ class LaserModel:
                 real_robot_cell = grid.convert_to_real_position(robot_cell[0], robot_cell[1])
                 r = hypot(real_cell[0] - real_robot_cell[0], real_cell[1] - real_robot_cell[1])
 
-                if r < R - 3:
+                if r < R - 10:
                     occupied_probability = (((R - r) / R) + 1) / 2 * self._p_max
                     previous_probability = grid.get_occupancy_idx(cell)
                     # empty probability, so passing 1 - occupied_probability

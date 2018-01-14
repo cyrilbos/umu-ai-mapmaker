@@ -42,7 +42,7 @@ class Map:
 
     def center_of_cell(self, x, y):
         xr, yr = self.convert_to_real_position(x, y)
-        return (xr + self._scale / 2, yr + self._scale / 2)
+        return (xr + (1 / (self._scale) * 2), yr + (1 / (self._scale) * 2))
 
     def convert_to_grid_indexes(self, x, y):
         # return self.convert_to_grid_index(x), self.convert_to_grid_index(y)
@@ -101,7 +101,7 @@ class Map:
         for x in range(1, self._grid_width - 1):
             for y in range(1, self._grid_height - 1):
                 if nav_grid[x][y] == 0: # only need to set values once
-                    if self._grid[x][y] > 0.5:
+                    if self._grid[x][y] >= 0.7:
                         nav_grid[x][y] = 1
                         nav_grid[x + 1][y] = 1
                         nav_grid[x + 1][y + 1] = 1

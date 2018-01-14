@@ -9,6 +9,8 @@ Authors: Ville Gillström (oi14vgm@cs.umu.se)
          Tobias Nebaeus (c14tns@cs.umu.se)
 
 """
+import winsound
+
 from logging import getLogger
 from math import atan
 
@@ -21,7 +23,9 @@ ROBOT_WIDTH = 0.9 # actual is 0.4
 
 logger = getLogger(__name__)
 
-g_lookahead = 0.8
+g_lookahead = 1.0
+g_blocked_times = 0
+
 def isWithinLOOKAHEAD(position, nextPosition):
     """
      Checks whether the distance between two positions is less than LOOKAHEAD
@@ -197,38 +201,67 @@ def setSpeedAndAvoidObstacles(mrds_url, pose, lsr, lsrAngles, angularSpeed, line
            angularSpeed - The given angular speed
            linearSpeed - The given linear speed
     '''
+    global g_blocked_times
     halfWidth = 29 # in indices
     zeroAngle = 135
     leftAngle = zeroAngle - halfWidth
     rightAngle = zeroAngle + halfWidth
 
-    goalAngle = getAngle(pose, carrotPosition)
-    goalAngleIdx = 0
+    #goalAngle = getAngle(pose, carrotPosition)
+    #goalAngleIdx = 0
 
-    for idx, angle in enumerate(lsrAngles):
-        if angle < goalAngle:
-            goalAngleIdx = idx
+    #for idx, angle in enumerate(lsrAngles):
+    #    if angle < goalAngle:
+    #        goalAngleIdx = idx
     blocked = False
 
-    for i in range(leftAngle, rightAngle + 1):
-        if lsr[i] < 0.4:
-            blocked = True
-            if i < goalAngleIdx:
-                angularSpeed += 0.5
-            else:
-                angularSpeed -= 0.5
-            linearSpeed -= -0.7
-            break;
+    shortest_distance = 10
+    is_right_angle = False
+
+    for i in range(leftAngle, zeroAngle):
+        if lsr[i] < 0.7:
+            if not blocked:
+                blocked = True
+                g_blocked_times += 1
+            if lsr[i] < shortest_distance:
+                shortest_distance = lsr[i]
+                is_right_angle = False
+
+    for i in range(zeroAngle, rightAngle):
+        if lsr[i] < 0.7:
+            if not blocked:
+                blocked = True
+                g_blocked_times += 1
+
+            if lsr[i] < shortest_distance:
+                shortest_distance = lsr[i]
+                is_right_angle = True
 
     if blocked:
+        if is_right_angle:
+            winsound.Beep(2500, 50)
+            angularSpeed -= 1.75
+        else:
+            winsound.Beep(5000, 50)
+            angularSpeed += 1.75
+        linearSpeed = 0.1
+
+    if g_blocked_times > 20:
+        g_blocked_times = 0
         postSpeed(mrds_url, 0, 0)
         time.sleep(0.5)
         #go reverse and plan again
-        postSpeed(mrds_url, angularSpeed, -0.5)
-        time.sleep(2)
+        postSpeed(mrds_url, 0.0, -0.4)
+        time.sleep(5)
         return True
     postSpeed(mrds_url, angularSpeed, linearSpeed)
 
+def reposition(mrds_url):
+    postSpeed(mrds_url, 0, 0)
+    time.sleep(0.5)
+    postSpeed(mrds_url, 0.5, -0.5)
+    time.sleep(2.5)
+    postSpeed(mrds_url, 0, 0)
 
 def goFast(path, mrds_url, q_pure_exit=None):
     """

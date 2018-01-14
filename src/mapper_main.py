@@ -10,6 +10,7 @@ from controller import Controller
 from goal_planner import GoalPlanner
 
 from controller.robotrunner_v2 import goFast
+from controller.robotrunner_v2 import reposition
 
 logging.basicConfig(format="[%(asctime)s %(filename)s:%(lineno)s - %(funcName)20s() ] %(message)s",
                     level=logging.INFO)
@@ -47,11 +48,11 @@ def astar(array, start, goal):
 
         close_set.add(current)
         for i, j in neighbors:
-            neighbor = current[0] + i, current[1] + j            
+            neighbor = current[0] + i, current[1] + j
             tentative_g_score = gscore[current] + heuristic(current, neighbor)
             if 0 <= neighbor[0] < array.shape[0]:
-                if 0 <= neighbor[1] < array.shape[1]:                
-                    if array[neighbor[0]][neighbor[1]] == 1:
+                if 0 <= neighbor[1] < array.shape[1]:
+                    if array[neighbor[0]][neighbor[1]] > 0.6:
                         continue
                 else:
                     # array bound y walls
@@ -83,7 +84,7 @@ def show_map_job(q_sm, width, height, q_showmap_path):
         if not q_showmap_path.empty():
             while not q_showmap_path.empty():
                 path, goal_point = q_showmap_path.get()
-        #expanded_map = occupancy_map.navigation_map()
+        # expanded_map = occupancy_map.navigation_map().navigation_map()
         show_map.updateMap(occupancy_map.grid, laser_model.p_max, robot_cell[0], robot_cell[1], goal_point, path)
 
 def path_planner_job(q_path_in, q_showmap_path, mrds_url, starting_pos):
@@ -93,7 +94,7 @@ def path_planner_job(q_path_in, q_showmap_path, mrds_url, starting_pos):
             occupancy_map, robot_cell = q_path_in.get()
 
         logger.info("Finding goal point")
-        planner = GoalPlanner(occupancy_map.navigation_map())
+        planner = GoalPlanner(occupancy_map.navigation_map().navigation_map())
         goal_point = starting_pos
         p = planner.closest_frontier_centroid(robot_cell)
         if p is not None:
@@ -107,11 +108,16 @@ def path_planner_job(q_path_in, q_showmap_path, mrds_url, starting_pos):
             logger.info("Calculating path")
             #path_planner = PathPlanner(occupancy_map.navigation_map())#PathPlanner(Map.expanded_obstacles_map(occupancy_map))
             #path = path_planner.get_path(robot_cell, goal_point)
-            path = astar(occupancy_map.navigation_map().grid, robot_cell, goal_point)
+            path = astar(occupancy_map.navigation_map().navigation_map().grid, robot_cell, goal_point)
             if not path:
+                # Try again with single-expanded obstacles
+                path = astar(occupancy_map.navigation_map().grid, robot_cell, goal_point)
+            if not path:
+                # Probably stuck "inside" an obstacle, try to get out
+                reposition(mrds_url)
                 continue
-            if len(path) <= 1:
-                continue
+            #if len(path) <= 1:
+            #    continue
 
             # For compatibility with the pure pursuit implementation
             new_path = []
@@ -125,12 +131,6 @@ def path_planner_job(q_path_in, q_showmap_path, mrds_url, starting_pos):
                 new_node['Pose']['Position']['Y'] = y
                 new_path.append(new_node)
             new_path.reverse()
-
-            # Send the path to the gui
-            #coord_path = []
-            #for x, y in path:
-            #    coord_path.append(occupancy_map.convert_to_grid_indexes(x, y))
-            #q_showmap_path.put([coord_path, goal_point])
 
             q_showmap_path.put([path, goal_point])
 
@@ -153,10 +153,10 @@ if __name__ == '__main__':
         #print("Usage: python3 mapper_main.py url x1 y1 x2 y2")
         #exit()
         mrds_url = "localhost:50000"
-        x1 = -20
+        x1 = -50
         y1 = -20
-        x2 = 40
-        y2 = 40
+        x2 = 80
+        y2 = 80
         width = x2 - x1
         height = y2 - y1
 
