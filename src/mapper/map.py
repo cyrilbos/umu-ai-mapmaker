@@ -14,6 +14,14 @@ class Map:
         pass
 
     def __init__(self, x1, y1, x2, y2, scale):
+        """
+
+        :param x1: x coordinate of top left corner of the area to explore
+        :param y1: y coordinate of top left corner of the area to explore
+        :param x2: x coordinate of bottom right corner of the area to explore
+        :param y2: y coordinate of top left corner of the area to explore
+        :param scale: resolution, i.e the number of cspace cells per real world meter
+        """
         self._scale = scale  # "squares per meter"
         self._delta_cell = 1 / scale
 
@@ -26,7 +34,7 @@ class Map:
         self._grid_width = int(self._real_width * scale)
         self._grid_height = int(self._real_height * scale)
         self._grid = np.empty((self._grid_width, self._grid_height))
-        self._grid[:] = 0.5 # Bayesian init
+        self._grid[:] = 0.5  # Bayesian init
 
     @property
     def grid_width(self):
@@ -41,6 +49,10 @@ class Map:
         return self._grid
 
     def center_of_cell(self, x, y):
+        """
+        returns the world position of the center of a cell of the cspace grid, to avoid using
+        the corner.
+        """
         xr, yr = self.convert_to_real_position(x, y)
         return (xr + (1 / (self._scale) * 2), yr + (1 / (self._scale) * 2))
 
@@ -94,14 +106,17 @@ class Map:
     def is_an_obstacle(self, cell):
         return self._grid[cell[0]][cell[1]] > 0.5
 
-    def navigation_map(self):
+    def obstacle_extended_map(self):
+        """
+            Returns a new instance of Map, with obstacles extended by one cell all around.
+        """
         nav_grid = np.empty((self._grid_width, self._grid_height))
         nav_grid[:] = 0       
 
         for x in range(1, self._grid_width - 1):
             for y in range(1, self._grid_height - 1):
                 if nav_grid[x][y] == 0: # only need to set values once
-                    if self._grid[x][y] >= 0.7:
+                    if self.is_an_obstacle((x,y)):
                         nav_grid[x][y] = 1
                         nav_grid[x + 1][y] = 1
                         nav_grid[x + 1][y + 1] = 1
@@ -123,38 +138,4 @@ class Map:
 
         new_map = Map(self._x1, self._y1, self._x2, self._y2, self._scale)
         new_map._grid = nav_grid
-        return new_map
-
-    @staticmethod
-    def expanded_obstacles_map(map):
-        def update_and_expand(row, col, value):
-            if (row, col) not in expanded_obstacles and map.is_in_bounds((row, col)):
-                new_grid[row][col] = value
-                expanded_obstacles.append((row, cell))
-
-        new_grid = []
-        obstacles = []
-        for row in range(0, map._grid_height):
-            new_grid.append([])
-            for col in range(0, map._grid_width):
-                new_grid[row].append(map._grid[col][row])
-                cell = (row, col)
-                if map.is_an_obstacle(cell):
-                    obstacles.append(cell)
-        expanded_obstacles = [] #stores updated cells to avoid updating them multiple times
-        for (row, col) in obstacles:
-            value = map._grid[row][col]
-            #apply mask to extand obstacles
-            update_and_expand(row - 1, col - 1, value)
-            update_and_expand(row - 1, col, value)
-            update_and_expand(row - 1, col + 1, value)
-            update_and_expand(row, col - 1, value)
-            #don't update row, col
-            update_and_expand(row, col + 1, value)
-            update_and_expand(row + 1, col - 1, value)
-            update_and_expand(row + 1, col, value)
-            update_and_expand(row + 1, col + 1, value)
-
-        new_map = Map(map._x1, map._y1, map._x2, map._y2, map._scale)
-        new_map._grid = new_grid
         return new_map

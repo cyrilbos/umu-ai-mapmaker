@@ -23,7 +23,7 @@ ROBOT_WIDTH = 0.9 # actual is 0.4
 
 logger = getLogger(__name__)
 
-g_lookahead = 1.0
+g_lookahead = 2.0
 g_blocked_times = 0
 
 def isWithinLOOKAHEAD(position, nextPosition):
@@ -48,10 +48,10 @@ def getDistance(position1, position2):
     dy = abs(position1['Y'] - position2['Y'])
     dx = abs(position1['X'] - position2['X'])
 
-    return hypot(dy, dx);
+    return hypot(dy, dx)
     
 
-def getAngle(pose, nextPosition):
+def get_angle(pose, nextPosition):
     """
     Get angle between robots heading and nextPosition
     Input:  pose - Robot's current pose
@@ -77,7 +77,7 @@ def getAngle(pose, nextPosition):
     return angle
 
 
-def getNextCarrotNode(pose, curNodeNum, path, lsr, lsrAngles):
+def getNextCarrotNode(pose, cur_node_num, path):
     '''
     Get the next node to "aim" at
     Input:  pose - Robot's current pose
@@ -87,14 +87,14 @@ def getNextCarrotNode(pose, curNodeNum, path, lsr, lsrAngles):
     '''
 
     while (isWithinLOOKAHEAD(pose['Pose']['Position'],
-            path[curNodeNum]['Pose']['Position']) and
-            (curNodeNum < len(path) - 1)):
-        curNodeNum += 1;
+                             path[cur_node_num]['Pose']['Position']) and
+           (cur_node_num < len(path) - 1)):
+        cur_node_num += 1
     
-    return curNodeNum
+    return cur_node_num
 
 
-def getNextCarrotPosition(pose, curNodeNum, path):
+def getNextCarrotPosition(pose, cur_node_num, path):
     '''
     Get the exact position of the carrot point on the path segment
     between node curNodeNum and the next one
@@ -104,24 +104,24 @@ def getNextCarrotPosition(pose, curNodeNum, path):
     Output: The carrot (goal) position
     '''
 
-    if curNodeNum == len(path) - 1:
-        return path[curNodeNum]['Pose']['Position']
+    if cur_node_num == len(path) - 1:
+        return path[cur_node_num]['Pose']['Position']
 
-    x1 = path[curNodeNum]['Pose']['Position']['X']
-    x2 = path[curNodeNum + 1]['Pose']['Position']['X']
-    y1 = path[curNodeNum]['Pose']['Position']['Y']
-    y2 = path[curNodeNum + 1]['Pose']['Position']['Y']
+    x1 = path[cur_node_num]['Pose']['Position']['X']
+    x2 = path[cur_node_num + 1]['Pose']['Position']['X']
+    y1 = path[cur_node_num]['Pose']['Position']['Y']
+    y2 = path[cur_node_num + 1]['Pose']['Position']['Y']
 
-    distanceToAdd = g_lookahead - getDistance(pose['Pose']['Position'], 
-                                path[curNodeNum]['Pose']['Position'])
+    distanceToAdd = g_lookahead - getDistance(pose['Pose']['Position'],
+                                              path[cur_node_num]['Pose']['Position'])
 
-    dy = y2 - y1;
-    dx = x2 - x1;
+    dy = y2 - y1
+    dx = x2 - x1
     if dx == 0:
         xToAdd = 0
         yToAdd = distanceToAdd
     else:
-        dydx = dy / dx;
+        dydx = dy / dx
         xToAdd = sqrt((distanceToAdd ** 2) / (1 + dydx ** 2))
         yToAdd = dydx * xToAdd
 
@@ -146,7 +146,7 @@ def getPureAngularSpeed(pose, goalPosition, linearSpeed):
     '''
 
     L = g_lookahead
-    y = sin(getAngle(pose, goalPosition)) * L
+    y = sin(get_angle(pose, goalPosition)) * L
     r = (L ** 2) / (2 * y)
     Y = 1 / r
 
@@ -172,8 +172,8 @@ def isObstructed(pose, otherPose, lsr, lsrAngles):
     distanceToPosition = getDistance(
                 pose['Pose']['Position'], otherPose['Pose']['Position'])
 
-    angle = getAngle(pose, otherPose['Pose']['Position']);
-    angleWidth = atan((ROBOT_WIDTH / 2) / distanceToPosition);
+    angle = get_angle(pose, otherPose['Pose']['Position'])
+    angleWidth = atan((ROBOT_WIDTH / 2) / distanceToPosition)
 
     startIndex = min(range(len(lsrAngles)),
             key=lambda i: abs(lsrAngles[i] - angle + angleWidth))
@@ -186,13 +186,22 @@ def isObstructed(pose, otherPose, lsr, lsrAngles):
         return True
 
     for i in range(startIndex, endIndex):
-        if lsr[i] < distanceToPosition :
-            return True;
+        if lsr[i] < distanceToPosition:
+            return True
 
     return False
 
-def setSpeedAndAvoidObstacles(mrds_url, sound, pose, lsr, lsrAngles, angularSpeed, linearSpeed, carrotPosition):
-    '''
+
+def stop(mrds_url, angular_speed, linear_speed, total_duration):
+    postSpeed(mrds_url, 0.5 * angular_speed, 0.5 * linear_speed)
+    time.sleep(0.25 * total_duration)
+    postSpeed(mrds_url, 0.25 * angular_speed, 0.25 * linear_speed)
+    time.sleep(0.25 * total_duration)
+    postSpeed(mrds_url, 0, 0)
+    time.sleep(0.5 * total_duration)
+
+def set_speed_and_avoid_obstacles(mrds_url, sound, pose, lsr, lsrAngles, angular_speed, linear_speed, carrotPosition):
+    """
     Adjusts the given angular and linear speeds in order to avoid obstacles
     found by using the laser scanner
     Input: pose - Robot's current pose
@@ -200,70 +209,97 @@ def setSpeedAndAvoidObstacles(mrds_url, sound, pose, lsr, lsrAngles, angularSpee
            lsrAngles - The angles of the provided laser scan
            angularSpeed - The given angular speed
            linearSpeed - The given linear speed
-    '''
+    """
     global g_blocked_times
-    halfWidth = 29 # in indices
-    zeroAngle = 135
-    leftAngle = zeroAngle - halfWidth
-    rightAngle = zeroAngle + halfWidth
+    blocked_distance = (1 + g_blocked_times) * 0.7
+    blocked, is_right_angle = is_blocked(mrds_url, blocked_distance)
+    if blocked:
+        angular_speed, linear_speed = blocked_speeds(is_right_angle)
+        stop(mrds_url, angular_speed, linear_speed, 0.5)
+        unblock(mrds_url, is_right_angle, blocked_distance)
+        g_blocked_times += 1
 
-    #goalAngle = getAngle(pose, carrotPosition)
-    #goalAngleIdx = 0
+        if g_blocked_times > 3:
+            g_blocked_times = 0
+            stop(mrds_url, angular_speed, linear_speed, 1)
+            # go reverse and plan again
+            postSpeed(mrds_url, 0.0, -0.4)
+            time.sleep(5)
 
-    #for idx, angle in enumerate(lsrAngles):
-    #    if angle < goalAngle:
-    #        goalAngleIdx = idx
+            if sound:
+                winsound.Beep(2000, 50)
+            return True
+
+    postSpeed(mrds_url, angular_speed, linear_speed)
+
+
+def is_blocked(mrds_url, blocked_distance):
+    half_width = 20  # in indices
+    zero_angle = 135
+
+    left_angle = zero_angle - half_width
+    right_angle = zero_angle + half_width
+    lsr = getLaser(mrds_url)['Echoes']
     blocked = False
 
     shortest_distance = 10
     is_right_angle = False
 
-    for i in range(leftAngle, zeroAngle):
-        if lsr[i] < 0.7:
-            if not blocked:
-                blocked = True
-                g_blocked_times += 1
-            if lsr[i] < shortest_distance:
-                shortest_distance = lsr[i]
-                is_right_angle = False
+    for i in range(left_angle, zero_angle):
+        if lsr[i] < blocked_distance:
+            blocked, is_right_angle, shortest_distance = handle_blocking_laser(blocked, False, lsr[i],
+                                                                               shortest_distance)
 
-    for i in range(zeroAngle, rightAngle):
-        if lsr[i] < 0.7:
-            if not blocked:
-                blocked = True
-                g_blocked_times += 1
+    for i in range(zero_angle, right_angle):
+        if lsr[i] < blocked_distance:
+            blocked, is_right_angle, shortest_distance = handle_blocking_laser(blocked, True, lsr[i],
+                                                                               shortest_distance)
 
-            if lsr[i] < shortest_distance:
-                shortest_distance = lsr[i]
-                is_right_angle = True
+    return blocked, is_right_angle
 
-    if blocked:
-        if is_right_angle:
-            if sound:
-                winsound.Beep(2500, 50)
-            angularSpeed -= 1.75
-        else:
-            if sound:
-                winsound.Beep(1500, 50)
-            angularSpeed += 1.75
-        linearSpeed = 0.1
+def blocked_speeds(is_right_angle):
+    if is_right_angle:
+        angular_speed = -1
+    else:
+        angular_speed = 1
+    linear_speed = -0.3
+    return angular_speed, linear_speed
 
-    if g_blocked_times > 20:
-        g_blocked_times = 0
-        postSpeed(mrds_url, 0, 0)
-        time.sleep(0.5)
-        #go reverse and plan again
-        postSpeed(mrds_url, 0.0, -0.4)
-        time.sleep(5)
-        return True
-    postSpeed(mrds_url, angularSpeed, linearSpeed)
+def unblock(mrds_url, is_right_angle, blocked_distance):
+    start_pos = getPose(mrds_url)['Pose']['Position']
+    blocked = True
+    angular_speed, linear_speed = blocked_speeds(is_right_angle)
+    while blocked:
+        # if it did not move backwards enough, probably means it's hitting a wall while backpedaling
+        if getDistance(start_pos, getPose(mrds_url)['Pose']['Position']) < 0.2:
+            break
+        blocked, new_is_right_angle = is_blocked(mrds_url, blocked_distance)
+        if blocked and new_is_right_angle != is_right_angle:
+            angular_speed, linear_speed = blocked_speeds(is_right_angle)
+
+        postSpeed(mrds_url, angular_speed, linear_speed)
+        time.sleep(0.3)
+
+    stop(mrds_url, angular_speed, linear_speed, 0.5)
 
 def reposition(mrds_url):
-    postSpeed(mrds_url, 0, 0)
-    time.sleep(0.5)
-    postSpeed(mrds_url, 0.5, -0.5)
-    time.sleep(2.5)
-    postSpeed(mrds_url, 0, 0)
+    stop(mrds_url, 0, -0.3, 1)
+
+    blocked, is_right_angle = is_blocked(mrds_url, 2.1) # 2.1 = max blocked_distance in set_speed_and_avoid_obstacles()
+    if blocked:
+        unblock(mrds_url, is_right_angle, 2.1)
+
+    stop(mrds_url, 0, -0.3, 1)
+
+
+def handle_blocking_laser(blocked, is_right_angle, lsr_dist, shortest_distance):
+    global g_blocked_times
+    if not blocked:
+        blocked = True
+    if lsr_dist < shortest_distance:
+        shortest_distance = lsr_dist
+    return blocked, is_right_angle, shortest_distance
+
 
 def goFast(path, mrds_url, sound=False):
     """
@@ -276,80 +312,42 @@ def goFast(path, mrds_url, sound=False):
     lsr = getLaser(mrds_url)['Echoes']
     pose = getPose(mrds_url)
     startNodeNum = 0
-    logger.info("SIIIIZE:")
-    logger.info(len(path))
     if len(path) > 1:
-        curNodeNum = getNextCarrotNode(pose, startNodeNum, path, lsr, lsrAngles)
+        cur_node_num = getNextCarrotNode(pose, startNodeNum, path)
     else:
-        curNodeNum = startNodeNum
+        cur_node_num = startNodeNum
 
-    nextPose = path[curNodeNum]['Pose']
-
-    while not ((curNodeNum == len(path) - 1) and
+    next_pose = path[cur_node_num]['Pose']
+    while not ((cur_node_num == len(path) - 1) and
             (getDistance(pose['Pose']['Position'], path[-1]['Pose']['Position']) < 0.7)):
 
-        linearSpeed = 1.0 # max is 1
+        linear_speed = 1.0 # max is 1
         
-        angle = getAngle(pose, nextPose['Position'])
-        if abs(angle)  > pi / 2:
-            angularSpeed = -1.5 * (2 / pi) * angle
-            linearSpeed = 0
+        angle = get_angle(pose, next_pose['Position'])
+        if abs(angle) > pi / 2:
+            angular_speed = -1.5 * (2 / pi) * angle
+            linear_speed = 0
         else:
-            angularSpeed = getPureAngularSpeed(pose, nextPose['Position'], linearSpeed)
+            angular_speed = getPureAngularSpeed(pose, next_pose['Position'], linear_speed)
             #Slow down when doing sharp turns
-            while abs(angularSpeed) > 1.8:
-                linearSpeed -= 0.01
-                angularSpeed = getPureAngularSpeed(pose, nextPose['Position'], linearSpeed)
+            while abs(angular_speed) > 1.8:
+                linear_speed -= 0.01
+                angular_speed = getPureAngularSpeed(pose, next_pose['Position'], linear_speed)
 
-        if setSpeedAndAvoidObstacles(mrds_url, sound, pose, lsr, lsrAngles, angularSpeed, linearSpeed, nextPose['Position']):
-            postSpeed(mrds_url, 0,0)
-            return
+        if set_speed_and_avoid_obstacles(mrds_url, sound, pose, lsr, lsrAngles, angular_speed, linear_speed, next_pose['Position']):
+            return  # blocked, so stop and replan
 
         time.sleep(0.04)
 
         pose = getPose(mrds_url)
         lsr = getLaser(mrds_url)['Echoes']
 
-        curNodeNum = getNextCarrotNode(pose, curNodeNum, path, lsr, lsrAngles)
-        logger.info("CurNodeNum: " + str(curNodeNum) + " of " + str(len(path)))
-        newCarrotPosition = getNextCarrotPosition(pose, curNodeNum, path)
-        nextPose = { 'Position' : newCarrotPosition }
+        cur_node_num = getNextCarrotNode(pose, cur_node_num, path)
+        logger.debug("CurNodeNum: " + str(cur_node_num) + " of " + str(len(path)))
+        new_carrot_position = getNextCarrotPosition(pose, cur_node_num, path)
+        next_pose = { 'Position' : new_carrot_position }
 
-        logger.debug("Current node: " + str(curNodeNum) + " of " + str(len(path)))
-        logger.debug("distance to node: " + str(getDistance(pose['Pose']['Position'], path[curNodeNum]['Pose']['Position'])))
+        logger.debug("Current node: " + str(cur_node_num) + " of " + str(len(path)))
+        logger.debug("distance to node: " + str(getDistance(pose['Pose']['Position'], path[cur_node_num]['Pose']['Position'])))
 
     postSpeed(mrds_url, 0, 0)
-   
-    
-###############################################################################
-
-    
-if __name__ == '__main__':
-    if len(sys.argv) > 1:
-        filename = str(sys.argv[1]) 
-        print ('Path file:', filename)
-        #Assumes all arguments are paths
-        pathFiles = sys.argv[1:]
-    else:
-        pathFiles = [
-            "paths\\Path-to-and-from-bed.json",
-            "paths\\Path-around-bench-and-sofa.json",
-            "paths\\Path-around-table-and-sofa.json",
-            "paths\\Path-around-table.json"
-            ]
-
-    for i in range(0, len(pathFiles) - 1):
-    #Open path file
-        with open(pathFiles[i]) as path_file:    
-            path = json.load(path_file)
-
-        start_time = time.time();
-        goFast(path)
-        end_time = time.time() - start_time
-        print("Time for " + pathFiles[i] + ": " + str(end_time))
-        with open(pathFiles[i + 1]) as path_file:    
-            path = json.load(path_file)
-        time.sleep(1)
-
-    print("DONE")
-    

@@ -16,62 +16,8 @@ logging.basicConfig(format="[%(asctime)s %(filename)s:%(lineno)s - %(funcName)20
                     level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-##############################################################
-# Didn't write this A* implementation, so I don't think we can use it,
-# but it's useful for testing.
-# (code.activestate.com/recipes/578919-python-a-pathfinding-with-binary-heap/)
-def heuristic(a, b):
-    return (b[0] - a[0]) ** 2 + (b[1] - a[1]) ** 2
 
-def astar(array, start, goal):
 
-    neighbors = [(0,1),(0,-1),(1,0),(-1,0),(1,1),(1,-1),(-1,1),(-1,-1)]
-
-    close_set = set()
-    came_from = {}
-    gscore = {start:0}
-    fscore = {start:heuristic(start, goal)}
-    oheap = []
-
-    heappush(oheap, (fscore[start], start))
-    
-    while oheap:
-
-        current = heappop(oheap)[1]
-
-        if current == goal:
-            data = []
-            while current in came_from:
-                data.append(current)
-                current = came_from[current]
-            return data
-
-        close_set.add(current)
-        for i, j in neighbors:
-            neighbor = current[0] + i, current[1] + j
-            tentative_g_score = gscore[current] + heuristic(current, neighbor)
-            if 0 <= neighbor[0] < array.shape[0]:
-                if 0 <= neighbor[1] < array.shape[1]:
-                    if array[neighbor[0]][neighbor[1]] > 0.6:
-                        continue
-                else:
-                    # array bound y walls
-                    continue
-            else:
-                # array bound x walls
-                continue
-                
-            if neighbor in close_set and tentative_g_score >= gscore.get(neighbor, 0):
-                continue
-                
-            if  tentative_g_score < gscore.get(neighbor, 0) or neighbor not in [i[1]for i in oheap]:
-                came_from[neighbor] = current
-                gscore[neighbor] = tentative_g_score
-                fscore[neighbor] = tentative_g_score + heuristic(neighbor, goal)
-                heappush(oheap, (fscore[neighbor], neighbor))
-                
-    return False
-#################################################################
 
 def show_map_job(q_sm, width, height, q_showmap_path):
     show_map = ShowMap(width, height, True)  # rows, cols, showgui
@@ -84,61 +30,83 @@ def show_map_job(q_sm, width, height, q_showmap_path):
         if not q_showmap_path.empty():
             while not q_showmap_path.empty():
                 path, goal_point = q_showmap_path.get()
-        # expanded_map = occupancy_map.navigation_map().navigation_map()
         show_map.updateMap(occupancy_map.grid, laser_model.p_max, robot_cell[0], robot_cell[1], goal_point, path)
+        time.sleep(0.2)
 
-def path_planner_job(q_path_in, q_showmap_path, mrds_url, starting_pos, sound):
+def planning_job(q_path_in, q_showmap_path, q_path_out, mrds_url, starting_pos, sound):
+    path_planner = PathPlanner()
+    banned_goal_points = []
+    visited_goal_points = []
     while True:
         occupancy_map, robot_cell = q_path_in.get()
         while not q_path_in.empty():
             occupancy_map, robot_cell = q_path_in.get()
 
-        logger.info("Finding goal point")
-        planner = GoalPlanner(occupancy_map.navigation_map().navigation_map())
-        goal_point = starting_pos
-        p = planner.closest_frontier_centroid(robot_cell)
-        if p is not None:
-            goal_point = p
-        
-        q_showmap_path.put([None, goal_point])
+        else:
+            logger.info("Finding goal point")
+            navigation_map = occupancy_map.obstacle_extended_map().obstacle_extended_map()
 
-        if goal_point:
-            #logger.info("goal point: " + str(goal_point))
-            #logger.info("path: " + str(astar(occupancy_map.navigation_map().grid, robot_cell, goal_point)))
-            logger.info("Calculating path")
-            #path_planner = PathPlanner(occupancy_map.navigation_map())#PathPlanner(Map.expanded_obstacles_map(occupancy_map))
-            #path = path_planner.get_path(robot_cell, goal_point)
-            path = astar(occupancy_map.navigation_map().navigation_map().grid, robot_cell, goal_point)
-            if not path:
-                # Try again with single-expanded obstacles
-                path = astar(occupancy_map.navigation_map().grid, robot_cell, goal_point)
-            if not path:
-                # Probably stuck "inside" an obstacle, try to get out
-                reposition(mrds_url)
-                continue
-            #if len(path) <= 1:
-            #    continue
+            planner = GoalPlanner(navigation_map)
+            goal_point = starting_pos
+            p = planner.closest_frontier_centroid(robot_cell)
+            blocking_goal_search_count = 0
+            while p in banned_goal_points and blocking_goal_search_count < 10:
+                navigation_map = navigation_map.obstacle_extended_map()
+                planner = GoalPlanner(navigation_map)
+                p = planner.closest_frontier_centroid(robot_cell)
+                blocking_goal_search_count += 1
+            if blocking_goal_search_count >= 10:
+                exit()
 
-            # For compatibility with the pure pursuit implementation
-            new_path = []
-            for xg, yg in path:
-                #x, y = occupancy_map.convert_to_real_position(xg, yg)
-                x, y = occupancy_map.center_of_cell(xg, yg)
-                new_node = {}
-                new_node['Pose'] = {}
-                new_node['Pose']['Position'] = {}
-                new_node['Pose']['Position']['X'] = x
-                new_node['Pose']['Position']['Y'] = y
-                new_path.append(new_node)
-            new_path.reverse()
+            if p is not None and occupancy_map.is_in_bounds(goal_point):
+                goal_point = p
 
-            q_showmap_path.put([path, goal_point])
+            q_showmap_path.put([None, goal_point])
+            q_path_out.put(goal_point)
 
-            logger.info("Following path using pp")
-            goFast(new_path, mrds_url, sound)
+            if goal_point:
+                logger.info("Calculating path")
+                path = path_planner.astar(navigation_map.grid, robot_cell, goal_point)
+
+                if not path:
+                    # Try again with expanded obstacles
+                    navigation_map = navigation_map.obstacle_extended_map()
+                    path = path_planner.astar(navigation_map.grid, robot_cell, goal_point)
+                if not path:
+                    # Probably stuck "inside" an obstacle, try to get out
+                    logger.info("Can not find a path to next goal, trying to get out of obstacle")
+                    reposition(mrds_url)
+                    banned_goal_points.append(goal_point)
+                    continue
+                #if len(path) <= 1:
+                #    continue
+                # For compatibility with the pure pursuit implementation
+                logger.info("new path found")
+                new_path = []
+                for xg, yg in path:
+                    if navigation_map.is_an_obstacle((xg, yg)):
+                        logger.error("one of the path node is an obstacle in navigation map")
+                        if occupancy_map.is_an_obstacle((xg, yg)):
+                            logger.error("one of the path node is an obstacle in occupancy map")
+
+                    x, y = occupancy_map.center_of_cell(xg, yg)
+                    new_node = {}
+                    new_node['Pose'] = {}
+                    new_node['Pose']['Position'] = {}
+                    new_node['Pose']['Position']['X'] = x
+                    new_node['Pose']['Position']['Y'] = y
+                    new_path.append(new_node)
+                new_path.reverse()
+
+                q_showmap_path.put([path, goal_point])
+
+                logger.info("Following path using pure pursuit")
+                goFast(new_path, mrds_url, sound)
+                visited_goal_points.append(goal_point)
+
 
 if __name__ == '__main__':
-    scale = 2
+    scale = 2 #resolution, i.e number of cells in the cspace grid for each meter
     laser_max_distance = 40
 
     if len(argv) == 6:
@@ -155,7 +123,7 @@ if __name__ == '__main__':
         #exit()
         # Temporary debug settings
         mrds_url = "localhost:50000"
-        x1 = -50
+        x1 = -70
         y1 = -20
         x2 = 70
         y2 = 70
@@ -182,12 +150,14 @@ if __name__ == '__main__':
     p1 = Process(target=show_map_job, args=(q_sm, scale * width, scale * height, q_showmap_path,))
     p1.daemon = False
     p1.start()
-    p2 = Process(target=path_planner_job, args=(q_path_in, q_showmap_path,mrds_url, starting_pos, sound,))
+    p2 = Process(target=planning_job, args=(q_path_in, q_showmap_path, q_path_out, mrds_url, starting_pos, sound,))
     p2.daemon = False
     p2.start()
 
+    no_goal_found = 0
+
     goal_point = (0, 0)
-    while True:#TODO: while xhere are unknown cells on the map/no goals?
+    while p2.is_alive():
         laser_scan = controller.get_laser_scan()
         pos, rot = controller.get_pos_and_orientation()
         laser_model.apply_model(occupancy_map, pos, rot, laser_scan)
@@ -199,7 +169,27 @@ if __name__ == '__main__':
             q_path_in.get()
         q_path_in.put([occupancy_map, robot_cell])
 
+        if q_path_out.empty():
+            new_goal_available = False
+        else:
+            new_goal_available = True
+            while not q_path_out.empty():
+                goal_point = q_path_out.get()
+
+        logger.debug("goal {}".format(goal_point))
+        logger.debug("robot cell {}".format(robot_cell))
+        if new_goal_available:
+            if goal_point == robot_cell:
+                logger.info("no_goal_found {}".format(no_goal_found))
+
+                no_goal_found += 1
+                if no_goal_found >= 5:
+                    break
+            else:
+                no_goal_found = 0
+
         time.sleep(0.075)
 
-    p.join()
+    p1.join()
+    p2.join()
 

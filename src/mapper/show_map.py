@@ -1,4 +1,4 @@
-from  PIL import Image
+from PIL import Image
 import numpy as np
 import time
 import threading
@@ -13,7 +13,7 @@ Author Peter Hohnloser
 """
 
 class ShowMap(object):
-    def __init__(self, gridHeight, gridWidth, showGUI):
+    def __init__(self, gridHeight, gridWidth, showGUI, name="ShowMap"):
         """
         Constructor for ShowMap
 
@@ -42,7 +42,7 @@ class ShowMap(object):
 
         # using matplotlib to show an image in a subplot
         self.__fig, self.__ax = plt.subplots(1, 1)
-        self.__fig.suptitle('Show Map')
+        self.__fig.suptitle(name)
 
         # remove the x and y tick in figure
         self.__ax.set_xticks([])
@@ -101,7 +101,7 @@ class ShowMap(object):
         # plot the goal point
         if goal_point:
             x, y = goal_point
-            self.__ax.plot(y, x, 'bh', markersize=6)
+            self.__ax.plot(y, x, 'bh', markersize=3)
         if path:
             for x, y in path:
                 self.__ax.plot(y, x, 'g+', markersize=2)
@@ -128,6 +128,6 @@ def saveMap(fig, mapName):
     data = data.reshape(fig.canvas.get_width_height()[::-1] + (3,))
     img = Image.fromarray(data)
     img.convert('RGB').save(mapName, "PNG")
-    logger.info("Saved new map under file {}".format(mapName))
+    # logger.info("Saved new map under file {}".format(mapName))
     pass
 

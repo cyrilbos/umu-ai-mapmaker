@@ -67,8 +67,6 @@ class LaserModel:
             if (idx % 2 == 0):
                 continue
             r = distance = laser_scan['Echoes'][idx]
-            #if distance > self._max_distance:
-            #    continue
 
             angle = robot_angle + laser_angle
 
@@ -115,7 +113,6 @@ class LaserModel:
             if cell not in updated_cells and grid.is_in_bounds(cell):
 
                 # alpha angle is supposed to be 0 (straight line), so beta - 0 / beta = 1
-                #r = np.linalg.norm(cell[0] - robot_cell[0]) #euclidian distance between cell and robot
                 real_cell = grid.convert_to_real_position(cell[0], cell[1])
                 real_robot_cell = grid.convert_to_real_position(robot_cell[0], robot_cell[1])
                 r = hypot(real_cell[0] - real_robot_cell[0], real_cell[1] - real_robot_cell[1])
