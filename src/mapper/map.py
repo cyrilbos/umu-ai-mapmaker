@@ -104,7 +104,7 @@ class Map:
         return self._grid[cell[0]][cell[1]] == 0.5
 
     def is_an_obstacle(self, cell):
-        return self._grid[cell[0]][cell[1]] > 0.5
+        return self._grid[cell[0]][cell[1]] > 0.6
 
     def obstacle_expanded_map(self):
         """
@@ -141,7 +141,7 @@ class Map:
         return new_map
 
     def get_nearest_empty_cell(self, cell, depth):
-        if depth >= 1000:
+        if depth >= 500:
             return None
         if self.is_in_bounds(cell) and not self.is_an_obstacle(cell) and not self.is_unexplored(cell):
             return cell

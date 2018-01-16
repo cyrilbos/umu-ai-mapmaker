@@ -13,16 +13,25 @@ class PathPlanner:
     neighbour_directions = [(0, 1), (0, -1), (1, 0), (-1, 0), (1, 1), (1, -1), (-1, 1), (-1, -1)]
 
     def __init__(self, max_depth=200):
-        self.__max_depth = 200
+        self.__max_depth = max_depth
 
     def astar(self, map, start, goal):
         """
         Implementation of astar inspired by code.activestate.com/recipes/578919-python-a-pathfinding-with-binary-heap/,
-        with a couple modifications # TODO: explain
+        with a couple modifications. The search is stopped at self.__max_depth to the last unexplored cell discovered, considering
+         this as a subgoal. #
         """
 
+        def number_of_neighbour_obstacles(n):
+            obstacles = 1
+            for direction in PathPlanner.neighbour_directions:
+                neighbour = (n[0] + direction[0], n[1] + direction[1])
+                if map.is_in_bounds(neighbour) and map.is_an_obstacle(neighbour):
+                    obstacles += 1
+            return obstacles
+
         def heuristic_distance(n1, n2):
-            return (n2[0] - n1[0]) ** 2 + (n2[1] - n1[1]) ** 2
+            return ((n2[0] - n1[0]) ** 2 + (n2[1] - n1[1]) ** 2) #/ number_of_neighbour_obstacles(n2)
 
         closed_nodes_set = set()
         came_from = {}
@@ -30,7 +39,7 @@ class PathPlanner:
         fscore = {start: heuristic_distance(start, goal)}
         opened_nodes_heap = []
         depth = 1
-        last_unexplored = start
+
         heappush(opened_nodes_heap, (fscore[start], start))  # Using a binary heap makes the list of nodes sorted
 
         while opened_nodes_heap:
@@ -39,13 +48,11 @@ class PathPlanner:
             if current == goal:
                 logger.info("Goal found, returning path")
                 return self.construct_path(came_from, current)
-            if map.is_unexplored(current):
-                last_unexplored = current
 
             depth += 1
             if depth > self.__max_depth:
-                logger.info("Max depth reached, returning path to closest knownww subgoal")
-                return self.construct_path(came_from, last_unexplored)
+                logger.info("Max depth reached, returning path to closest subgoal")
+                return self.construct_path(came_from, current)
 
             closed_nodes_set.add(current)
             for i, j in PathPlanner.neighbour_directions:
@@ -53,7 +60,7 @@ class PathPlanner:
                 tentative_g_score = gscore[current] + heuristic_distance(current, neighbor)
                 if 0 <= neighbor[0] < map.grid_width:
                     if 0 <= neighbor[1] < map.grid_height:
-                        if map.is_an_obstacle(neighbor):
+                        if neighbor != goal and map.is_an_obstacle(neighbor):# or number_of_neighbour_obstacles(neighbor) > 1:
                             continue
                     else:
                         # array bound y walls

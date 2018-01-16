@@ -3,8 +3,8 @@ from math import hypot
 
 # This is for the apartment, the factory environment could
 # probably use a much higher value
-MIN_NUM_FRONTIER_POINTS = 10
-
+MIN_NUM_FRONTIER_POINTS = 15
+OPEN_MAX_VALUE = 0.1
 
 class GoalPlanner:
     """
@@ -15,24 +15,26 @@ class GoalPlanner:
     Output: A goal position (or grid coordinate) to explore
     """
 
-    def __init__(self, cspace_map, open_max_value):
+    def __init__(self, cspace_map):
         self._cspace_map = cspace_map
-        self._open_max_value = open_max_value
 
     def _distance(self, point, robot_indexes):
         x1, y1 = robot_indexes
         x2, y2 = point
         return hypot(x2 - x1, y2 - y1)
 
+    def get_min_frontier(self, best_frontier, robot_indexes):
+        return min(best_frontier, key=lambda p: self._distance(p, robot_indexes))
+
     def closest_frontier_centroid(self, robot_indexes):
         frontiers = self.find_frontiers(self._cspace_map, robot_indexes)
         if not frontiers:
             return None
 
-        best_frontier = min(frontiers, key=lambda f: self._distance(self.centroid(f), robot_indexes))
-        closest_frontier_point = max(best_frontier, key=lambda p: self._distance(p, robot_indexes))
+        best_frontier = max(frontiers, key=lambda f: self._distance(self.centroid(f), robot_indexes))
+        closest_frontier_point = min(best_frontier, key=lambda p: self._distance(p, robot_indexes))
 
-        return closest_frontier_point
+        return frontiers#closest_frontier_point
 
     def find_centroids(self, frontiers):
         return [self.centroid(f) for f in frontiers]
@@ -104,7 +106,7 @@ class GoalPlanner:
             for v in self.adjacent(p):
                 if (v not in map_open and v not in map_closed and
                         self.has_open_neighbor(v)):
-                    # TODO rewrite this to has_neighbor_in_open_space (don't need the set).
+
                     queue_m.append(v)
                     map_open.add(v)
 
@@ -124,7 +126,7 @@ class GoalPlanner:
 
         for p in neighbors:
             x, y = p
-            if grid[x][y] <= self._open_max_value:
+            if grid[x][y] <= OPEN_MAX_VALUE:
                 return True
 
         return False
@@ -173,7 +175,7 @@ class GoalPlanner:
 
         for p in self.adjacent(point):
             x, y = p
-            if grid[x, y] <= self._open_max_value:
+            if grid[x, y] <= OPEN_MAX_VALUE:
                 return True
 
         return False

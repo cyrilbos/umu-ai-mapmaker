@@ -14,7 +14,7 @@ logger = getLogger('controller')
 HEADERS = {"Content-type": "application/json", "Accept": "text/json"}
 
 ROBOT_WIDTH = 0.9  # actual is 0.4
-g_lookahead = 1.2
+g_lookahead = 2
 g_blocked_times = 0
 
 
@@ -252,11 +252,11 @@ class Controller:
                linearSpeed - The given linear speed
         """
         global g_blocked_times
-        blocked_distance = 2 * ROBOT_WIDTH
+        blocked_distance = ROBOT_WIDTH * 0.75
         blocked, is_right_angle = self.is_blocked(blocked_distance)
         if blocked:
             self.stop()
-            self.unblock(is_right_angle, 0.75 * blocked_distance)
+            self.unblock(is_right_angle, 2 * blocked_distance)
             if sound:
                 winsound.Beep(2000, 50)
             return True
@@ -264,7 +264,7 @@ class Controller:
         self.post_speed(angular_speed, linear_speed)
 
     def is_blocked(self, blocked_distance):
-        half_width = 30  # in indices
+        half_width = 10  # in indices
         zero_angle = 135
 
         left_angle = zero_angle - half_width
@@ -277,12 +277,12 @@ class Controller:
 
         for i in range(left_angle, zero_angle):
             if lsr[i] < blocked_distance:
-                blocked, is_right_angle, shortest_distance = self.handle_blocking_laser(blocked, False, lsr[i],
+                blocked, is_right_angle, shortest_distance = self.handle_blocking_laser(False, lsr[i],
                                                                                         shortest_distance)
 
         for i in range(zero_angle, right_angle):
             if lsr[i] < blocked_distance:
-                blocked, is_right_angle, shortest_distance = self.handle_blocking_laser(blocked, True, lsr[i],
+                blocked, is_right_angle, shortest_distance = self.handle_blocking_laser(True, lsr[i],
                                                                                         shortest_distance)
 
         return blocked, is_right_angle
@@ -291,11 +291,11 @@ class Controller:
         if is_right_angle is None:
             angular_speed = 0
         elif is_right_angle:
-            angular_speed = -0.5
+            angular_speed = -1
         else:
-            angular_speed = 0.5
+            angular_speed = 1
         linear_speed = -0.5
-        return angular_speed, linear_speed
+        return 0, linear_speed
 
     def unblock(self, is_right_angle, blocked_distance):
         global g_blocked_times
@@ -313,12 +313,10 @@ class Controller:
             time.sleep(0.2)
         self.stop()
 
-    def handle_blocking_laser(self, blocked, is_right_angle, lsr_dist, shortest_distance):
-        if not blocked:
-            blocked = True
+    def handle_blocking_laser(self, is_right_angle, lsr_dist, shortest_distance):
         if lsr_dist < shortest_distance:
             shortest_distance = lsr_dist
-        return blocked, is_right_angle, shortest_distance
+        return True, is_right_angle, shortest_distance
 
     def go_fast(self, path, sound=False):
         """
@@ -342,7 +340,7 @@ class Controller:
         # The robot is  usually facing an obstacle when reaching a goal, and the other goal is in the opposite direction.
         # This avoids it colliding with that obstacle or triggering the reactive stop.
         if abs(angle) > 0.1:
-            self.post_speed(3 * math.copysign(angle,1), 0)
+            self.post_speed(-3 * math.copysign(angle,1), 0)
         while abs(angle) > pi / 8:
             angle = self.get_angle(self.getPose(), next_pose['Position'])
             time.sleep(0.1)

@@ -85,7 +85,7 @@ class LaserModel:
             # region 2 = cells between the robot cell and the hit cell
             self.bresenham_line(hit_cell, robot_cell, grid, R)
 
-            if grid.is_in_bounds(hit_cell) and distance < R - 10:
+            if grid.is_in_bounds(hit_cell) and distance < R - 5:
                 logger.debug("hit cell [{}][{}]".format(robot_cell[0], robot_cell[1]))
                 # region 1 = hit cell
                 # alpha angle = 0
