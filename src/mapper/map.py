@@ -106,7 +106,7 @@ class Map:
     def is_an_obstacle(self, cell):
         return self._grid[cell[0]][cell[1]] > 0.5
 
-    def obstacle_extended_map(self):
+    def obstacle_expanded_map(self):
         """
             Returns a new instance of Map, with obstacles extended by one cell all around.
         """

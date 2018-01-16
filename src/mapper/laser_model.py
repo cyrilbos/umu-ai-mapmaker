@@ -3,10 +3,7 @@ from math import atan2, pi, cos, sin, hypot
 
 import math
 
-import numpy as np
-
-from model import Quaternion, Vector
-from model.pure_pursuit import convert_to_rcs
+from controller.util import heading
 
 logger = getLogger(__name__)
 
@@ -29,6 +26,7 @@ class LaserModel:
         self._laser_angles = laser_angles
         self._max_distance = laser_max_distance
         self._p_max = 0.98
+        self._minimum_increase = 0.01
 
     @property
     def p_max(self):
@@ -45,8 +43,8 @@ class LaserModel:
         # use the laser scan to update the map using
         # the sensor model
 
-        cur_heading = Quaternion(robot_orientation.w, Vector(0, 0, robot_orientation.z)).heading()
-        robot_angle = atan2(cur_heading.y, cur_heading.x)
+        cur_heading = heading(robot_orientation)
+        robot_angle = atan2(cur_heading['Y'], cur_heading['X'])
 
         # fixes weird angle bug
         while robot_angle > pi:
@@ -56,15 +54,15 @@ class LaserModel:
 
         distance_to_laser = LASER_OFFSET_X # Since the y-offset is zero
 
-        laser_pos_x = robot_pos.x + distance_to_laser * cos(robot_angle)
-        laser_pos_y = robot_pos.y + distance_to_laser * sin(robot_angle)
+        laser_pos_x = robot_pos['X'] + distance_to_laser * cos(robot_angle)
+        laser_pos_y = robot_pos['Y'] + distance_to_laser * sin(robot_angle)
 
-        logger.debug("robot pos x:{} y:{}".format(robot_pos.x, robot_pos.y))
+        logger.debug("robot pos x:{} y:{}".format(robot_pos['X'], robot_pos['Y']))
 
         R = self._max_distance
 
         for idx, laser_angle in enumerate(self._laser_angles):
-            if (idx % 2 == 0):
+            if idx % 2 == 0:
                 continue
             r = distance = laser_scan['Echoes'][idx]
 
@@ -76,25 +74,24 @@ class LaserModel:
             laser_hit_y = laser_pos_y + distance * sin(angle)
             logger.debug("laser angle: {}".format(laser_angle))
 
-            logger.debug("robot_pos.x: " + str(robot_pos.x) + " robot_pos.y: " + str(robot_pos.y))
+            logger.debug("robot_pos.x: " + str(robot_pos['X']) + " robot_pos.y: " + str(robot_pos['Y']))
             logger.debug("laser_x: " + str(laser_hit_x) + " laser_y: " + str(laser_hit_y))
 
             hit_cell = grid.convert_to_grid_indexes(laser_hit_x, laser_hit_y)
             logger.debug("hit cell [{}][{}]".format(hit_cell[0], hit_cell[1]))
 
-            robot_cell = grid.convert_to_grid_indexes(robot_pos.x, robot_pos.y)
+            robot_cell = grid.convert_to_grid_indexes(robot_pos['X'], robot_pos['Y'])
       
             # region 2 = cells between the robot cell and the hit cell
             self.bresenham_line(hit_cell, robot_cell, grid, R)
 
-            if grid.is_in_bounds(hit_cell) and distance < self._max_distance:
+            if grid.is_in_bounds(hit_cell) and distance < R - 10:
                 logger.debug("hit cell [{}][{}]".format(robot_cell[0], robot_cell[1]))
                 # region 1 = hit cell
                 # alpha angle = 0
-                occupied_probability = ((((R - r) / R) + 1) / 2 * self._p_max)
+                occupied_probability = ((((R - r) / R) + 1) / 2 * self._p_max) + self._minimum_increase
                 grid.set_occupancy(laser_hit_x, laser_hit_y, self.bayesian_probability(occupied_probability,
                                                                                        grid.get_occupancy(laser_hit_x, laser_hit_y)))
-
 
     def bresenham_line(self, hit_cell, robot_cell, grid, R):
         deltax = hit_cell[0] - robot_cell[0]
@@ -108,7 +105,6 @@ class LaserModel:
         for x in range(robot_cell[0], hit_cell[0], int(math.copysign(1, deltax))):
             cell = (int(x),int(y))
             if x == hit_cell[0] + int(math.copysign(1, deltax)) * 5:
-                logger.info("returned!!!!!!!!")
                 return
             if cell not in updated_cells and grid.is_in_bounds(cell):
 

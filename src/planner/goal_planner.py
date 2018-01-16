@@ -3,7 +3,8 @@ from math import hypot
 
 # This is for the apartment, the factory environment could
 # probably use a much higher value
-MIN_NUM_FRONTIER_POINTS = 10
+MIN_NUM_FRONTIER_POINTS = 8
+
 
 class GoalPlanner:
     """
@@ -13,7 +14,6 @@ class GoalPlanner:
 
     Output: A goal position (or grid coordinate) to explore
     """
-
 
     def __init__(self, cspace_map, open_max_value):
         self._cspace_map = cspace_map
@@ -100,7 +100,7 @@ class GoalPlanner:
                     frontiers.append(new_frontier)
                 for pt in new_frontier:
                     map_closed.add(pt)
-            
+
             for v in self.adjacent(p):
                 if (v not in map_open and v not in map_closed and
                         self.has_open_neighbor(v)):
@@ -118,7 +118,7 @@ class GoalPlanner:
         """
         if not self._cspace_map.is_in_bounds(point):
             return False
-        
+
         neighbors = self.adjacent(point)
         grid = self._cspace_map.grid
 
@@ -128,7 +128,6 @@ class GoalPlanner:
                 return True
 
         return False
-        
 
     def adjacent(self, point):
         """
@@ -140,7 +139,7 @@ class GoalPlanner:
         y_max = self._cspace_map.grid_height - 1
 
         adjacent_points = set([])
-        
+
         if x < x_max:
             adjacent_points.add((x + 1, y))
         if y < y_max:

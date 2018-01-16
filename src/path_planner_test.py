@@ -1,8 +1,7 @@
 import time
 
 from mapper import Map
-from model import Vector
-from path_planner.path_planner import PathPlanner
+from planner.path_planner import PathPlanner
 
 import logging
 logging.basicConfig(format="[%(asctime)s %(filename)s:%(lineno)s - %(funcName)20s() ] %(message)s",
