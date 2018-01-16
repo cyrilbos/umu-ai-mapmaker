@@ -14,7 +14,7 @@ logger = getLogger('controller')
 HEADERS = {"Content-type": "application/json", "Accept": "text/json"}
 
 ROBOT_WIDTH = 0.9  # actual is 0.4
-g_lookahead = 2
+g_lookahead = 0.5
 g_blocked_times = 0
 
 
@@ -252,11 +252,11 @@ class Controller:
                linearSpeed - The given linear speed
         """
         global g_blocked_times
-        blocked_distance = ROBOT_WIDTH * 0.75
+        blocked_distance = ROBOT_WIDTH * 0.5
         blocked, is_right_angle = self.is_blocked(blocked_distance)
         if blocked:
             self.stop()
-            self.unblock(is_right_angle, 2 * blocked_distance)
+            self.unblock(is_right_angle, blocked_distance)
             if sound:
                 winsound.Beep(2000, 50)
             return True
@@ -264,7 +264,7 @@ class Controller:
         self.post_speed(angular_speed, linear_speed)
 
     def is_blocked(self, blocked_distance):
-        half_width = 10  # in indices
+        half_width = 20  # in indices
         zero_angle = 135
 
         left_angle = zero_angle - half_width
@@ -287,30 +287,24 @@ class Controller:
 
         return blocked, is_right_angle
 
-    def blocked_speeds(self, is_right_angle):
-        if is_right_angle is None:
-            angular_speed = 0
-        elif is_right_angle:
-            angular_speed = -1
-        else:
-            angular_speed = 1
-        linear_speed = -0.5
+    def blocked_speeds(self):
+        linear_speed = -0.3
         return 0, linear_speed
 
     def unblock(self, is_right_angle, blocked_distance):
         global g_blocked_times
         blocked = True
-        angular_speed, linear_speed = self.blocked_speeds(is_right_angle)
+        angular_speed, linear_speed = self.blocked_speeds()
         self.post_speed(angular_speed, linear_speed)
-        time.sleep(0.5)
+        time.sleep(0.1)
         while blocked:
             blocked, new_is_right_angle = self.is_blocked(blocked_distance)
             if blocked and new_is_right_angle != is_right_angle:
                 is_right_angle = new_is_right_angle
-                angular_speed, linear_spewed = self.blocked_speeds(is_right_angle)
+                angular_speed, linear_speed = self.blocked_speeds()
 
             self.post_speed(angular_speed, linear_speed)
-            time.sleep(0.2)
+            time.sleep(0.1)
         self.stop()
 
     def handle_blocking_laser(self, is_right_angle, lsr_dist, shortest_distance):
@@ -348,7 +342,7 @@ class Controller:
         while not ((cur_node_num == len(path) - 1) and
                    (self.get_distance(pose['Pose']['Position'], path[-1]['Pose']['Position']) < ROBOT_WIDTH)):
 
-            linear_speed = 1.0  # max is 1
+            linear_speed = self._lin_spd
 
             angle = self.get_angle(pose, next_pose['Position'])
             if abs(angle) > pi / 2:

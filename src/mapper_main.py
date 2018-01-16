@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 def show_map_job(q_sm, width, height, q_showmap_path):
     show_map = ShowMap(width, height, True)  # rows, cols, showgui
-    #show_expanded_map = ShowMap(width, height, True, name="Expanded map")  # rows, cols, showgui
+    show_expanded_map = ShowMap(width, height, True, name="Expanded map")  # rows, cols, showgui
     goal_point = (0, 0)
     path = None
     while True:
@@ -27,7 +27,7 @@ def show_map_job(q_sm, width, height, q_showmap_path):
             while not q_showmap_path.empty():
                 path, goal_point = q_showmap_path.get()
         show_map.updateMap(occupancy_map.grid, laser_model.p_max, robot_cell[0], robot_cell[1], goal_point, path)
-        #show_expanded_map.updateMap(occupancy_map.obstacle_expanded_map().obstacle_expanded_map().grid, laser_model.p_max, robot_cell[0], robot_cell[1], goal_point, path)
+        show_expanded_map.updateMap(occupancy_map.obstacle_expanded_map().obstacle_expanded_map().grid, laser_model.p_max, robot_cell[0], robot_cell[1], goal_point, path)
         time.sleep(0.5)
 
 
@@ -49,7 +49,7 @@ def planning_job(controller, q_path_in, q_showmap_path, q_path_out, scale, width
 
         logger.info("Finding goal point")
 
-        navigation_map = occupancy_map.obstacle_expanded_map().obstacle_expanded_map()  # TODO: try with forced one time expanded obstacles
+        navigation_map = occupancy_map.obstacle_expanded_map().obstacle_expanded_map().obstacle_expanded_map()   # TODO: try with forced one time expanded obstacles
         nearest_empty = navigation_map.get_nearest_empty_cell(robot_cell, 0)
         if nearest_empty:
             robot_cell = nearest_empty
@@ -172,7 +172,7 @@ def planning_job(controller, q_path_in, q_showmap_path, q_path_out, scale, width
 
 
 if __name__ == '__main__':
-    scale = 2  # resolution, i.e number of cells in the cspace grid for each meter
+    scale = 8  # resolution, i.e number of cells in the cspace grid for each meter
     laser_max_distance = 40
 
     if len(argv) == 6:
@@ -186,15 +186,15 @@ if __name__ == '__main__':
         # exit()
         # Temporary debug settings
         mrds_url = "localhost:50000"
-        x1 = -50
-        y1 = -50
-        x2 = 50
-        y2 = 50
+        x1 = -7
+        y1 = -7
+        x2 = 10
+        y2 = 10
     width = x2 - x1
     height = y2 - y1
     sound = False  # can be set to True to play a beep when the reactive stop activates
 
-    controller = Controller(mrds_url=mrds_url)
+    controller = Controller(mrds_url=mrds_url, lin_spd=0.6)
 
     laser_angles = controller.get_laser_scan_angles()
     laser_model = LaserModel(laser_angles, laser_max_distance)
@@ -202,7 +202,7 @@ if __name__ == '__main__':
     occupancy_map = Map(x1, y1, x2, y2, scale)
 
     pose = controller.getPose()['Pose']
-    controller.post_speed(2, 0.6)
+    controller.post_speed(3, 0.2)
     timer = 1
     # Initial scan to choose a better first frontier
     while timer > 0:
