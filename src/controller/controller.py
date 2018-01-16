@@ -4,6 +4,8 @@ import winsound
 from logging import getLogger
 from math import atan2, sin, sqrt, pi, hypot
 
+import math
+
 from controller.util import heading, UnexpectedResponse
 
 logger = getLogger('controller')
@@ -12,7 +14,7 @@ logger = getLogger('controller')
 HEADERS = {"Content-type": "application/json", "Accept": "text/json"}
 
 ROBOT_WIDTH = 0.9  # actual is 0.4
-g_lookahead = 1.0
+g_lookahead = 1.2
 g_blocked_times = 0
 
 
@@ -250,22 +252,19 @@ class Controller:
                linearSpeed - The given linear speed
         """
         global g_blocked_times
-        blocked_distance = 1.25 * ROBOT_WIDTH
+        blocked_distance = 2 * ROBOT_WIDTH
         blocked, is_right_angle = self.is_blocked(blocked_distance)
         if blocked:
             self.stop()
-            self.unblock(is_right_angle, g_blocked_times * blocked_distance)
-            g_blocked_times += 1
-            if g_blocked_times > 2:
-
-                if sound:
-                    winsound.Beep(2000, 50)
-                return True  # blocked too many times, so replan
+            self.unblock(is_right_angle, 0.75 * blocked_distance)
+            if sound:
+                winsound.Beep(2000, 50)
+            return True
 
         self.post_speed(angular_speed, linear_speed)
 
     def is_blocked(self, blocked_distance):
-        half_width = 15  # in indices
+        half_width = 30  # in indices
         zero_angle = 135
 
         left_angle = zero_angle - half_width
@@ -289,12 +288,14 @@ class Controller:
         return blocked, is_right_angle
 
     def blocked_speeds(self, is_right_angle):
-        if is_right_angle:
-            angular_speed = -1
+        if is_right_angle is None:
+            angular_speed = 0
+        elif is_right_angle:
+            angular_speed = -0.5
         else:
-            angular_speed = 1
-        linear_speed = -0.6
-        return 0, linear_speed
+            angular_speed = 0.5
+        linear_speed = -0.5
+        return angular_speed, linear_speed
 
     def unblock(self, is_right_angle, blocked_distance):
         global g_blocked_times
@@ -306,10 +307,11 @@ class Controller:
             blocked, new_is_right_angle = self.is_blocked(blocked_distance)
             if blocked and new_is_right_angle != is_right_angle:
                 is_right_angle = new_is_right_angle
-                angular_speed, linear_speed = self.blocked_speeds(is_right_angle)
+                angular_speed, linear_spewed = self.blocked_speeds(is_right_angle)
 
             self.post_speed(angular_speed, linear_speed)
-            time.sleep(0.5)
+            time.sleep(0.2)
+        self.stop()
 
     def handle_blocking_laser(self, blocked, is_right_angle, lsr_dist, shortest_distance):
         if not blocked:
@@ -339,8 +341,8 @@ class Controller:
         # If not facing the first position on the new path, rotates until it does.
         # The robot is  usually facing an obstacle when reaching a goal, and the other goal is in the opposite direction.
         # This avoids it colliding with that obstacle or triggering the reactive stop.
-        if abs(angle) > pi / 8:
-            self.post_speed(-6 * angle, 0)
+        if abs(angle) > 0.1:
+            self.post_speed(3 * math.copysign(angle,1), 0)
         while abs(angle) > pi / 8:
             angle = self.get_angle(self.getPose(), next_pose['Position'])
             time.sleep(0.1)
@@ -363,7 +365,7 @@ class Controller:
 
             if self.set_speed_and_avoid_obstacles(sound, angular_speed, linear_speed):
                 self.stop()
-                return False  # blocked, so stop and replan
+                return True  # blocked, so stop and replan
 
             time.sleep(0.04)
 

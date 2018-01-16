@@ -89,7 +89,9 @@ class LaserModel:
                 logger.debug("hit cell [{}][{}]".format(robot_cell[0], robot_cell[1]))
                 # region 1 = hit cell
                 # alpha angle = 0
-                occupied_probability = ((((R - r) / R) + 1) / 2 * self._p_max) + self._minimum_increase
+                occupied_probability = ((((R - r) / R) + 1) / 2 * self._p_max)
+                if not grid.is_an_obstacle(hit_cell):
+                    occupied_probability += self._minimum_increase
                 grid.set_occupancy(laser_hit_x, laser_hit_y, self.bayesian_probability(occupied_probability,
                                                                                        grid.get_occupancy(laser_hit_x, laser_hit_y)))
 

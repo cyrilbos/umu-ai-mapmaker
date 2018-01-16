@@ -3,7 +3,7 @@ from math import hypot
 
 # This is for the apartment, the factory environment could
 # probably use a much higher value
-MIN_NUM_FRONTIER_POINTS = 8
+MIN_NUM_FRONTIER_POINTS = 10
 
 
 class GoalPlanner:

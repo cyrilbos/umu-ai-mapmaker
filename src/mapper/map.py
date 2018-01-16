@@ -139,3 +139,15 @@ class Map:
         new_map = Map(self._x1, self._y1, self._x2, self._y2, self._scale)
         new_map._grid = nav_grid
         return new_map
+
+    def get_nearest_empty_cell(self, cell, depth):
+        if depth >= 1000:
+            return None
+        if self.is_in_bounds(cell) and not self.is_an_obstacle(cell) and not self.is_unexplored(cell):
+            return cell
+        else:
+            for direction in [(0, 1), (0, -1), (1, 0), (-1, 0), (1, 1), (1, -1), (-1, 1), (-1, -1)]:
+                neighbour = (cell[0] + direction[0], cell[1] + direction[1])
+                if self.get_nearest_empty_cell(neighbour, depth+1):
+                    return cell
+            return None

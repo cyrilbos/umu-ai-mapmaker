@@ -1,5 +1,9 @@
 from heapq import heappush, heappop
 
+from logging import getLogger
+
+logger = getLogger(__name__)
+
 class PathPlanner:
     """
     The path planner, resposible for creating a path to the goal set by the planner using A* search.
@@ -7,6 +11,9 @@ class PathPlanner:
 
     # static table used to iterate over neighbours
     neighbour_directions = [(0, 1), (0, -1), (1, 0), (-1, 0), (1, 1), (1, -1), (-1, 1), (-1, -1)]
+
+    def __init__(self, max_depth=200):
+        self.__max_depth = 200
 
     def astar(self, map, start, goal):
         """
@@ -22,19 +29,23 @@ class PathPlanner:
         gscore = {start: 0}
         fscore = {start: heuristic_distance(start, goal)}
         opened_nodes_heap = []
-
+        depth = 1
+        last_unexplored = start
         heappush(opened_nodes_heap, (fscore[start], start))  # Using a binary heap makes the list of nodes sorted
 
         while opened_nodes_heap:
 
             current = heappop(opened_nodes_heap)[1]
+            if current == goal:
+                logger.info("Goal found, returning path")
+                return self.construct_path(came_from, current)
+            if map.is_unexplored(current):
+                last_unexplored = current
 
-            if current == goal or map.is_unexplored(current):
-                data = []
-                while current in came_from:
-                    data.append(current)
-                    current = came_from[current]
-                return data
+            depth += 1
+            if depth > self.__max_depth:
+                logger.info("Max depth reached, returning path to closest knownww subgoal")
+                return self.construct_path(came_from, last_unexplored)
 
             closed_nodes_set.add(current)
             for i, j in PathPlanner.neighbour_directions:
@@ -62,3 +73,10 @@ class PathPlanner:
                     heappush(opened_nodes_heap, (fscore[neighbor], neighbor))
 
         return None
+
+    def construct_path(self, came_from, current):
+        path = []
+        while current in came_from:
+            path.append(current)
+            current = came_from[current]
+        return path
