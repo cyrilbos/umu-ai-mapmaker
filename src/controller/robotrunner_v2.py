@@ -259,16 +259,12 @@ def blocked_speeds(is_right_angle):
 def unblock(mrds_url, is_right_angle, blocked_distance):
     global g_blocked_times
     start_pos = getPose(mrds_url)['Pose']['Position']
-    print(start_pos)
     blocked = True
     angular_speed, linear_speed = blocked_speeds(is_right_angle)
     postSpeed(mrds_url, angular_speed, linear_speed)
     time.sleep(0.5)
     while blocked:
         current_pos = getPose(mrds_url)['Pose']['Position']
-        # if it did not move backwards enough, probably means it's hitting a wall while backpedaling
-        print(current_pos)
-        print(getDistance(start_pos, current_pos))
 
         blocked, new_is_right_angle = is_blocked(mrds_url, blocked_distance)
         if blocked and new_is_right_angle != is_right_angle:
@@ -324,7 +320,7 @@ def goFast(path, mrds_url, sound=False):
             linear_speed -= 0.01
             angular_speed = getPureAngularSpeed(pose, next_pose['Position'], linear_speed)
 
-        if set_speed_and_avoid_obstacles(mrds_url, sound, pose, lsr, lsrAngles, angular_speed, linear_speed, next_pose['Position']):
+        if set_speed_and_avoid_obstacles(mrds_url, sound, angular_speed, linear_speed):
             return False  # blocked, so stop and replan
 
         time.sleep(0.04)
