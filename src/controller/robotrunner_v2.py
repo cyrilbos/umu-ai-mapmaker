@@ -16,9 +16,6 @@ from math import atan
 
 from controller.util import *
 
-MAX_LOOKAHEAD = 1.4
-MIN_LOOKAHEAD = 0.5
-GOAL_THRESHOLD = 1.0
 ROBOT_WIDTH = 0.9 # actual is 0.4
 
 logger = getLogger(__name__)
@@ -192,15 +189,12 @@ def isObstructed(pose, otherPose, lsr, lsrAngles):
     return False
 
 
-def stop(mrds_url, angular_speed, linear_speed, total_duration):
-    postSpeed(mrds_url, 0.5 * angular_speed, 0.5 * linear_speed)
-    time.sleep(0.25 * total_duration)
-    postSpeed(mrds_url, 0.25 * angular_speed, 0.25 * linear_speed)
-    time.sleep(0.25 * total_duration)
-    postSpeed(mrds_url, 0, 0)
-    time.sleep(0.5 * total_duration)
+def stop(mrds_url):
 
-def set_speed_and_avoid_obstacles(mrds_url, sound, pose, lsr, lsrAngles, angular_speed, linear_speed, carrotPosition):
+    postSpeed(mrds_url, 0, 0)
+    time.sleep(1)
+
+def set_speed_and_avoid_obstacles(mrds_url, sound, angular_speed, linear_speed):
     """
     Adjusts the given angular and linear speeds in order to avoid obstacles
     found by using the laser scanner
@@ -211,24 +205,21 @@ def set_speed_and_avoid_obstacles(mrds_url, sound, pose, lsr, lsrAngles, angular
            linearSpeed - The given linear speed
     """
     global g_blocked_times
-    blocked_distance = (1 + g_blocked_times) * 0.7
+    blocked_distance = (1 + g_blocked_times) * ROBOT_WIDTH / 1.5
     blocked, is_right_angle = is_blocked(mrds_url, blocked_distance)
     if blocked:
         angular_speed, linear_speed = blocked_speeds(is_right_angle)
-        stop(mrds_url, angular_speed, linear_speed, 0.5)
-        unblock(mrds_url, is_right_angle, blocked_distance)
+        stop(mrds_url)
+        if unblock(mrds_url, is_right_angle, blocked_distance):
+            return True #was going to hit a wall by going backwards, so replan
         g_blocked_times += 1
 
         if g_blocked_times > 3:
             g_blocked_times = 0
-            stop(mrds_url, angular_speed, linear_speed, 1)
-            # go reverse and plan again
-            postSpeed(mrds_url, 0.0, -0.4)
-            time.sleep(5)
-
+            stop(mrds_url)
             if sound:
                 winsound.Beep(2000, 50)
-            return True
+            return True #blocked too many times, so replan
 
     postSpeed(mrds_url, angular_speed, linear_speed)
 
@@ -262,38 +253,34 @@ def blocked_speeds(is_right_angle):
         angular_speed = -1
     else:
         angular_speed = 1
-    linear_speed = -0.3
-    return angular_speed, linear_speed
+    linear_speed = -0.6
+    return 0, linear_speed
 
 def unblock(mrds_url, is_right_angle, blocked_distance):
+    global g_blocked_times
     start_pos = getPose(mrds_url)['Pose']['Position']
+    print(start_pos)
     blocked = True
     angular_speed, linear_speed = blocked_speeds(is_right_angle)
+    postSpeed(mrds_url, angular_speed, linear_speed)
+    time.sleep(0.5)
     while blocked:
+        current_pos = getPose(mrds_url)['Pose']['Position']
         # if it did not move backwards enough, probably means it's hitting a wall while backpedaling
-        if getDistance(start_pos, getPose(mrds_url)['Pose']['Position']) < 0.2:
-            break
+        print(current_pos)
+        print(getDistance(start_pos, current_pos))
+
         blocked, new_is_right_angle = is_blocked(mrds_url, blocked_distance)
         if blocked and new_is_right_angle != is_right_angle:
             angular_speed, linear_speed = blocked_speeds(is_right_angle)
 
+        start_pos = current_pos
         postSpeed(mrds_url, angular_speed, linear_speed)
-        time.sleep(0.3)
+        time.sleep(0.5)
 
-    stop(mrds_url, angular_speed, linear_speed, 0.5)
-
-def reposition(mrds_url):
-    stop(mrds_url, 0, -0.3, 1)
-
-    blocked, is_right_angle = is_blocked(mrds_url, 2.1) # 2.1 = max blocked_distance in set_speed_and_avoid_obstacles()
-    if blocked:
-        unblock(mrds_url, is_right_angle, 2.1)
-
-    stop(mrds_url, 0, -0.3, 1)
-
+    return False
 
 def handle_blocking_laser(blocked, is_right_angle, lsr_dist, shortest_distance):
-    global g_blocked_times
     if not blocked:
         blocked = True
     if lsr_dist < shortest_distance:
@@ -319,23 +306,26 @@ def goFast(path, mrds_url, sound=False):
 
     next_pose = path[cur_node_num]['Pose']
     while not ((cur_node_num == len(path) - 1) and
-            (getDistance(pose['Pose']['Position'], path[-1]['Pose']['Position']) < 0.7)):
+            (getDistance(pose['Pose']['Position'], path[-1]['Pose']['Position']) < ROBOT_WIDTH)):
 
         linear_speed = 1.0 # max is 1
         
         angle = get_angle(pose, next_pose['Position'])
-        if abs(angle) > pi / 2:
-            angular_speed = -1.5 * (2 / pi) * angle
-            linear_speed = 0
-        else:
+        #TODO: put old if and put this special case outside the while on first path pos
+        while abs(angle) > pi / 8:
+            angular_speed = -3 * angle
+            postSpeed(mrds_url, angular_speed, 0.3)
+            time.sleep(0.1)
+            angle = get_angle(getPose(mrds_url), next_pose['Position'])
+
+        angular_speed = getPureAngularSpeed(pose, next_pose['Position'], linear_speed)
+        #Slow down when doing sharp turns
+        while abs(angular_speed) > 1.8:
+            linear_speed -= 0.01
             angular_speed = getPureAngularSpeed(pose, next_pose['Position'], linear_speed)
-            #Slow down when doing sharp turns
-            while abs(angular_speed) > 1.8:
-                linear_speed -= 0.01
-                angular_speed = getPureAngularSpeed(pose, next_pose['Position'], linear_speed)
 
         if set_speed_and_avoid_obstacles(mrds_url, sound, pose, lsr, lsrAngles, angular_speed, linear_speed, next_pose['Position']):
-            return  # blocked, so stop and replan
+            return False  # blocked, so stop and replan
 
         time.sleep(0.04)
 

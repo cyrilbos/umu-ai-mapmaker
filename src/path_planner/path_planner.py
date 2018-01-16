@@ -8,7 +8,7 @@ class PathPlanner:
     # static table used to iterate over neighbours
     neighbour_directions = [(0, 1), (0, -1), (1, 0), (-1, 0), (1, 1), (1, -1), (-1, 1), (-1, -1)]
 
-    def astar(self, grid, start, goal):
+    def astar(self, map, start, goal):
         """
         Implementation of astar inspired by code.activestate.com/recipes/578919-python-a-pathfinding-with-binary-heap/,
         with a couple modifications # TODO: explain
@@ -17,32 +17,32 @@ class PathPlanner:
         def heuristic_distance(n1, n2):
             return (n2[0] - n1[0]) ** 2 + (n2[1] - n1[1]) ** 2
 
-        close_set = set()
+        closed_nodes_set = set()
         came_from = {}
         gscore = {start: 0}
         fscore = {start: heuristic_distance(start, goal)}
-        oheap = []
+        opened_nodes_heap = []
 
-        heappush(oheap, (fscore[start], start))
+        heappush(opened_nodes_heap, (fscore[start], start))  # Using a binary heap makes the list of nodes sorted
 
-        while oheap:
+        while opened_nodes_heap:
 
-            current = heappop(oheap)[1]
+            current = heappop(opened_nodes_heap)[1]
 
-            if current == goal:
+            if current == goal or map.is_unexplored(current):
                 data = []
                 while current in came_from:
                     data.append(current)
                     current = came_from[current]
                 return data
 
-            close_set.add(current)
+            closed_nodes_set.add(current)
             for i, j in PathPlanner.neighbour_directions:
                 neighbor = current[0] + i, current[1] + j
                 tentative_g_score = gscore[current] + heuristic_distance(current, neighbor)
-                if 0 <= neighbor[0] < grid.shape[0]:
-                    if 0 <= neighbor[1] < grid.shape[1]:
-                        if grid[neighbor[0]][neighbor[1]] > 0.6:
+                if 0 <= neighbor[0] < map.grid_width:
+                    if 0 <= neighbor[1] < map.grid_height:
+                        if map.is_an_obstacle(neighbor):
                             continue
                     else:
                         # array bound y walls
@@ -51,14 +51,14 @@ class PathPlanner:
                     # array bound x walls
                     continue
 
-                if neighbor in close_set and tentative_g_score >= gscore.get(neighbor, 0):
+                if neighbor in closed_nodes_set and tentative_g_score >= gscore.get(neighbor, 0):
                     continue
 
                 # if the neighbor is not in opened nodes or its score is better, store the path and scores
-                if tentative_g_score < gscore.get(neighbor, 0) or neighbor not in [i[1] for i in oheap]:
+                if tentative_g_score < gscore.get(neighbor, 0) or neighbor not in [i[1] for i in opened_nodes_heap]:
                     came_from[neighbor] = current
                     gscore[neighbor] = tentative_g_score
                     fscore[neighbor] = tentative_g_score + heuristic_distance(neighbor, goal)
-                    heappush(oheap, (fscore[neighbor], neighbor))
+                    heappush(opened_nodes_heap, (fscore[neighbor], neighbor))
 
-        return False
+        return None

@@ -1,8 +1,6 @@
 from collections import deque
 from math import hypot
 
-OPEN_MAX_VALUE = 0.1
-
 # This is for the apartment, the factory environment could
 # probably use a much higher value
 MIN_NUM_FRONTIER_POINTS = 10
@@ -17,8 +15,9 @@ class GoalPlanner:
     """
 
 
-    def __init__(self, cspace_map):
+    def __init__(self, cspace_map, open_max_value):
         self._cspace_map = cspace_map
+        self._open_max_value = open_max_value
 
     def _distance(self, point, robot_indexes):
         x1, y1 = robot_indexes
@@ -125,7 +124,7 @@ class GoalPlanner:
 
         for p in neighbors:
             x, y = p
-            if grid[x][y] <= OPEN_MAX_VALUE:
+            if grid[x][y] <= self._open_max_value:
                 return True
 
         return False
@@ -175,7 +174,7 @@ class GoalPlanner:
 
         for p in self.adjacent(point):
             x, y = p
-            if grid[x, y] <= OPEN_MAX_VALUE:
+            if grid[x, y] <= self._open_max_value:
                 return True
 
         return False

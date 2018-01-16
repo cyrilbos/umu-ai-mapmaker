@@ -28,7 +28,7 @@ class LaserModel:
     def __init__(self, laser_angles, laser_max_distance):
         self._laser_angles = laser_angles
         self._max_distance = laser_max_distance
-        self._p_max = 0.95
+        self._p_max = 0.98
 
     @property
     def p_max(self):
