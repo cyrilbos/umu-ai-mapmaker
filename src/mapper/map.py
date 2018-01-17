@@ -64,7 +64,7 @@ class Map:
         return int(real_value * self._scale)
 
     def convert_to_real_position(self, grid_x, grid_y):
-        #return grid_x / self._scale, grid_y / self._scale
+        # return grid_x / self._scale, grid_y / self._scale
         return (grid_x / self._scale) + self._x1, (grid_y / self._scale) + self._y1
 
     def is_in_bounds(self, cell):
@@ -104,19 +104,19 @@ class Map:
         return self._grid[cell[0]][cell[1]] == 0.5
 
     def is_an_obstacle(self, cell):
-        return self._grid[cell[0]][cell[1]] > 0.6
+        return self._grid[cell[0]][cell[1]] > 0.7
 
     def obstacle_expanded_map(self):
         """
             Returns a new instance of Map, with obstacles extended by one cell all around.
         """
         nav_grid = np.empty((self._grid_width, self._grid_height))
-        nav_grid[:] = 0       
+        nav_grid[:] = 0
 
         for x in range(1, self._grid_width - 1):
             for y in range(1, self._grid_height - 1):
-                if nav_grid[x][y] == 0: # only need to set values once
-                    if self.is_an_obstacle((x,y)):
+                if nav_grid[x][y] == 0:  # only need to set values once
+                    if self.is_an_obstacle((x, y)):
                         nav_grid[x][y] = 1
                         nav_grid[x + 1][y] = 1
                         nav_grid[x + 1][y + 1] = 1
@@ -148,6 +148,6 @@ class Map:
         else:
             for direction in [(0, 1), (0, -1), (1, 0), (-1, 0), (1, 1), (1, -1), (-1, 1), (-1, -1)]:
                 neighbour = (cell[0] + direction[0], cell[1] + direction[1])
-                if self.get_nearest_empty_cell(neighbour, depth+1):
+                if self.get_nearest_empty_cell(neighbour, depth + 1):
                     return cell
             return None

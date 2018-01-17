@@ -7,7 +7,6 @@ from controller.util import heading
 
 logger = getLogger(__name__)
 
-
 # Got these values from requesting the laser properties (/lokarria/laser/properties).
 # I incorrectly assumed that the position of the laser scanner were the same as the
 # position of the robot. This should make scans more accurate.
@@ -38,7 +37,6 @@ class LaserModel:
         return ((occupied_probability * previous_probabilty) /
                 (occupied_probability * previous_probabilty + empty_probability * empty_previous_probability))
 
-
     def apply_model(self, grid, robot_pos, robot_orientation, laser_scan):
         # use the laser scan to update the map using
         # the sensor model
@@ -52,7 +50,7 @@ class LaserModel:
         while robot_angle < -pi:
             robot_angle += pi
 
-        distance_to_laser = LASER_OFFSET_X # Since the y-offset is zero
+        distance_to_laser = LASER_OFFSET_X  # Since the y-offset is zero
 
         laser_pos_x = robot_pos['X'] + distance_to_laser * cos(robot_angle)
         laser_pos_y = robot_pos['Y'] + distance_to_laser * sin(robot_angle)
@@ -69,7 +67,7 @@ class LaserModel:
             angle = robot_angle + laser_angle
 
             logger.debug("laser index: {}".format(idx))
-            
+
             laser_hit_x = laser_pos_x + distance * cos(angle)
             laser_hit_y = laser_pos_y + distance * sin(angle)
             logger.debug("laser angle: {}".format(laser_angle))
@@ -81,19 +79,20 @@ class LaserModel:
             logger.debug("hit cell [{}][{}]".format(hit_cell[0], hit_cell[1]))
 
             robot_cell = grid.convert_to_grid_indexes(robot_pos['X'], robot_pos['Y'])
-      
+
             # region 2 = cells between the robot cell and the hit cell
             self.bresenham_line(hit_cell, robot_cell, grid, R)
 
             if grid.is_in_bounds(hit_cell) and distance < R - 5:
                 logger.debug("hit cell [{}][{}]".format(robot_cell[0], robot_cell[1]))
                 # region 1 = hit cell
-                # alpha angle = 0
+                # alpha angle is equal to 0
                 occupied_probability = ((((R - r) / R) + 1) / 2 * self._p_max)
                 if not grid.is_an_obstacle(hit_cell):
                     occupied_probability += self._minimum_increase
                 grid.set_occupancy(laser_hit_x, laser_hit_y, self.bayesian_probability(occupied_probability,
-                                                                                       grid.get_occupancy(laser_hit_x, laser_hit_y)))
+                                                                                       grid.get_occupancy(laser_hit_x,
+                                                                                                          laser_hit_y)))
 
     def bresenham_line(self, hit_cell, robot_cell, grid, R):
         deltax = hit_cell[0] - robot_cell[0]
@@ -105,7 +104,7 @@ class LaserModel:
         updated_cells = []
 
         for x in range(robot_cell[0], hit_cell[0], int(math.copysign(1, deltax))):
-            cell = (int(x),int(y))
+            cell = (int(x), int(y))
             if x == hit_cell[0] + int(math.copysign(1, deltax)) * 5:
                 return
             if cell not in updated_cells and grid.is_in_bounds(cell):
@@ -119,7 +118,8 @@ class LaserModel:
                     occupied_probability = (((R - r) / R) + 1) / 2 * self._p_max
                     previous_probability = grid.get_occupancy_idx(cell)
                     # empty probability, so passing 1 - occupied_probability
-                    grid.set_occupancy_idx(cell, self.bayesian_probability(1 - occupied_probability, previous_probability))
+                    grid.set_occupancy_idx(cell,
+                                           self.bayesian_probability(1 - occupied_probability, previous_probability))
                     updated_cells.append(cell)
             error = error + deltaerr
             while error >= 0.5:

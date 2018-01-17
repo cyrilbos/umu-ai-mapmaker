@@ -6,6 +6,7 @@ from math import hypot
 MIN_NUM_FRONTIER_POINTS = 15
 OPEN_MAX_VALUE = 0.1
 
+
 class GoalPlanner:
     """
     Responsible for choosing the next area to explore using a frontier-based method.
@@ -23,18 +24,12 @@ class GoalPlanner:
         x2, y2 = point
         return hypot(x2 - x1, y2 - y1)
 
-    def get_min_frontier(self, best_frontier, robot_indexes):
-        return min(best_frontier, key=lambda p: self._distance(p, robot_indexes))
+    def get_min_frontier(self, frontiers, robot_indexes):
+        return  min(frontiers, key=lambda f: self._distance(self.centroid(f), robot_indexes))
 
-    def closest_frontier_centroid(self, robot_indexes):
-        frontiers = self.find_frontiers(self._cspace_map, robot_indexes)
-        if not frontiers:
-            return None
-
-        best_frontier = max(frontiers, key=lambda f: self._distance(self.centroid(f), robot_indexes))
-        closest_frontier_point = min(best_frontier, key=lambda p: self._distance(p, robot_indexes))
-
-        return frontiers#closest_frontier_point
+    def get_closest_centroid(self, frontier, robot_indexes):
+        closest_frontier_point = max(frontier, key=lambda p: self._distance(p, robot_indexes))
+        return closest_frontier_point
 
     def find_centroids(self, frontiers):
         return [self.centroid(f) for f in frontiers]
@@ -106,7 +101,6 @@ class GoalPlanner:
             for v in self.adjacent(p):
                 if (v not in map_open and v not in map_closed and
                         self.has_open_neighbor(v)):
-
                     queue_m.append(v)
                     map_open.add(v)
 

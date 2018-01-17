@@ -14,8 +14,9 @@ logger = getLogger('controller')
 HEADERS = {"Content-type": "application/json", "Accept": "text/json"}
 
 ROBOT_WIDTH = 0.9  # actual is 0.4
+#laser distance to consider the robot is blocked
+blocked_distance = 2 * ROBOT_WIDTH
 g_lookahead = 2
-g_blocked_times = 0
 
 
 class Controller:
@@ -137,22 +138,22 @@ class Controller:
 
         return hypot(dy, dx)
 
-    def get_angle(self, pose, nextPosition):
+    def get_angle(self, pose, next_position):
         """
-        Get angle between robots heading and nextPosition
+        Get angle between robots heading and next_position
         Input:  pose - Robot's current pose
-                nextPosition - Position to get angle to
-        Output: The angle between pose and nextPosition
+                next_position - Position to get angle to
+        Output: The angle between pose and next_position
         """
 
-        currentPosition = pose['Pose']['Position']
-        dy = nextPosition['Y'] - currentPosition['Y']
-        dx = nextPosition['X'] - currentPosition['X']
-        currentBearing = heading(pose['Pose']['Orientation'])
+        current_position = pose['Pose']['Position']
+        dy = next_position['Y'] - current_position['Y']
+        dx = next_position['X'] - current_position['X']
+        current_bearing = heading(pose['Pose']['Orientation'])
 
-        robotAngle = atan2(currentBearing['Y'], currentBearing['X'])
-        angleToPosition = atan2(dy, dx)
-        angle = robotAngle - angleToPosition
+        robot_angle = atan2(current_bearing['Y'], current_bearing['X'])
+        angle_to_position = atan2(dy, dx)
+        angle = robot_angle - angle_to_position
 
         # Fixes weird angle bug
         while angle > pi:
@@ -251,12 +252,10 @@ class Controller:
                angularSpeed - The given angular speed
                linearSpeed - The given linear speed
         """
-        global g_blocked_times
-        blocked_distance = ROBOT_WIDTH * 0.75
         blocked, is_right_angle = self.is_blocked(blocked_distance)
         if blocked:
             self.stop()
-            self.unblock(is_right_angle, 2 * blocked_distance)
+            self.unblock(blocked_distance)
             if sound:
                 winsound.Beep(2000, 50)
             return True
@@ -264,7 +263,7 @@ class Controller:
         self.post_speed(angular_speed, linear_speed)
 
     def is_blocked(self, blocked_distance):
-        half_width = 10  # in indices
+        half_width = 20  # in indices
         zero_angle = 135
 
         left_angle = zero_angle - half_width
@@ -287,28 +286,17 @@ class Controller:
 
         return blocked, is_right_angle
 
-    def blocked_speeds(self, is_right_angle):
-        if is_right_angle is None:
-            angular_speed = 0
-        elif is_right_angle:
-            angular_speed = -1
-        else:
-            angular_speed = 1
+    def blocked_speeds(self):
         linear_speed = -0.5
         return 0, linear_speed
 
-    def unblock(self, is_right_angle, blocked_distance):
-        global g_blocked_times
+    def unblock(self, blocked_distance):
         blocked = True
-        angular_speed, linear_speed = self.blocked_speeds(is_right_angle)
+        angular_speed, linear_speed = self.blocked_speeds()
         self.post_speed(angular_speed, linear_speed)
         time.sleep(0.5)
         while blocked:
             blocked, new_is_right_angle = self.is_blocked(blocked_distance)
-            if blocked and new_is_right_angle != is_right_angle:
-                is_right_angle = new_is_right_angle
-                angular_speed, linear_spewed = self.blocked_speeds(is_right_angle)
-
             self.post_speed(angular_speed, linear_speed)
             time.sleep(0.2)
         self.stop()
@@ -324,8 +312,6 @@ class Controller:
         obstacles and to take shortcuts if possible.
         Input: path - a path of nodes to follow
         """
-        global g_blocked_times
-        g_blocked_times = 0
         pose = self.getPose()
         start_node_num = 0
         if len(path) > 1:
@@ -339,8 +325,8 @@ class Controller:
         # If not facing the first position on the new path, rotates until it does.
         # The robot is  usually facing an obstacle when reaching a goal, and the other goal is in the opposite direction.
         # This avoids it colliding with that obstacle or triggering the reactive stop.
-        if abs(angle) > 0.1:
-            self.post_speed(-3 * math.copysign(angle,1), 0)
+        if abs(angle) > 0.2:
+            self.post_speed(-3 * math.copysign(angle, 1), 0)
         while abs(angle) > pi / 8:
             angle = self.get_angle(self.getPose(), next_pose['Position'])
             time.sleep(0.1)
