@@ -33,6 +33,7 @@ def planning_job(controller, q_path_in, q_showmap_path, scale, width, height, so
         frontiers = planner.find_frontiers(navigation_map, robot_cell)
         #No more frontiers, so area fully explored
         if frontiers is None:
+            logger.info("No more frontier pointsw. Area fully explored")
             exit()
 
         f = planner.get_min_frontier(frontiers, robot_cell)
@@ -48,11 +49,14 @@ def planning_job(controller, q_path_in, q_showmap_path, scale, width, height, so
 
         if p is not None and occupancy_map.is_in_bounds(p):
             goal_point = p
+        elif p is None:
+            logger.info("No more frontier points that weren't banned or visited. Area fully explored")
+            exit()
 
         #Add new goal point to the map
         q_showmap_path.put([None, goal_point])
 
-        if goal_point:
+        if p is not None and goal_point:
             logger.info("Calculating path to goal {}".format(goal_point))
 
             if goal_point in planned_goal_points:
@@ -67,6 +71,7 @@ def planning_job(controller, q_path_in, q_showmap_path, scale, width, height, so
                     for i in range(0, planned_goal_points[goal_point]):
                         navigation_map = navigation_map.obstacle_expanded_map()
                 logger.info("Could not find a path last time, retrying with extended obstacles")
+                planned_goal_points[goal_point] += 1
 
             path = path_planner.astar(navigation_map, robot_cell, goal_point)
             if not path:
@@ -79,9 +84,7 @@ def planning_job(controller, q_path_in, q_showmap_path, scale, width, height, so
                 continue
             logger.info("New path found")
 
-            if goal_point in planned_goal_points:
-                planned_goal_points[goal_point] += 1
-            else:
+            if goal_point not in planned_goal_points:
                 planned_goal_points[goal_point] = 0
 
             new_path = []
