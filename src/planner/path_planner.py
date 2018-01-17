@@ -46,7 +46,7 @@ class PathPlanner:
         while opened_nodes_heap:
 
             current = heappop(opened_nodes_heap)[1]
-            if current == goal:
+            if current == goal or heuristic_distance(current, goal) < 5:
                 logger.info("Goal found, returning path")
                 return self.construct_path(came_from, current)
 

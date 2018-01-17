@@ -25,9 +25,13 @@ class GoalPlanner:
         return hypot(x2 - x1, y2 - y1)
 
     def get_min_frontier(self, frontiers, robot_indexes):
-        return  min(frontiers, key=lambda f: self._distance(self.centroid(f), robot_indexes))
+        if frontiers is None:
+            return None
+        return min(frontiers, key=lambda f: self._distance(self.centroid(f), robot_indexes))
 
     def get_closest_centroid(self, frontier, robot_indexes):
+        if frontier is None:
+            return None
         closest_frontier_point = max(frontier, key=lambda p: self._distance(p, robot_indexes))
         return closest_frontier_point
 

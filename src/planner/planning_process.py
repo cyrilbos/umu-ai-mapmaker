@@ -7,7 +7,7 @@ logger = getLogger(__name__)
 
 
 def planning_job(controller, q_path_in, q_showmap_path, scale, width, height, sound):
-    path_planner = PathPlanner(4 * scale * (width + height))  # this is a limit in the depth of the A* search
+    path_planner = PathPlanner(8 * scale * (width + height))  # this is a limit in the depth of the A* search
 
     planned_goal_points = {}
     banned_goal_points = set()
