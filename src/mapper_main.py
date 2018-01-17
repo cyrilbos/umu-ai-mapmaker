@@ -23,14 +23,9 @@ if __name__ == '__main__':
         x2 = int(argv[4])
         y2 = int(argv[5])
     else:
-        # print("Usage: python3 mapper_main.py url x1 y1 x2 y2")
-        # exit()
-        # Temporary debug settings
-        mrds_url = "localhost:50000"
-        x1 = -50
-        y1 = -50
-        x2 = 50
-        y2 = 50
+        print("Usage: python3 mapper_main.py url x1 y1 x2 y2")
+        exit()
+
     width = x2 - x1
     height = y2 - y1
     sound = False  # can be set to True to play a beep when the reactive stop activates
