@@ -1,6 +1,6 @@
 import http.client, json
 import time
-import winsound
+#import winsound
 from logging import getLogger
 from math import atan2, sin, sqrt, pi, hypot
 
@@ -256,8 +256,7 @@ class Controller:
         if blocked:
             self.stop()
             self.unblock(blocked_distance)
-            if sound:
-                winsound.Beep(2000, 50)
+
             return True
 
         self.post_speed(angular_speed, linear_speed)
