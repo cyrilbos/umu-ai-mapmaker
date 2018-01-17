@@ -27,13 +27,13 @@ def planning_job(controller, q_path_in, q_showmap_path, scale, width, height, so
         nearest_empty = navigation_map.get_nearest_empty_cell(robot_cell, 0)
         if nearest_empty:
             robot_cell = nearest_empty
-
+        logger.info("yolo")
         planner = GoalPlanner(navigation_map)
         goal_point = robot_cell
         frontiers = planner.find_frontiers(navigation_map, robot_cell)
         #No more frontiers, so area fully explored
         if frontiers is None:
-            logger.info("No more frontier pointsw. Area fully explored")
+            logger.info("No more frontier points. Area fully explored")
             exit()
 
         f = planner.get_min_frontier(frontiers, robot_cell)
@@ -46,6 +46,9 @@ def planning_job(controller, q_path_in, q_showmap_path, scale, width, height, so
                 frontiers.remove(f)
             f = planner.get_min_frontier(frontiers, robot_cell)
             p = planner.get_closest_centroid(f, robot_cell)
+            logger.info(frontiers)
+            logger.info(f)
+            logger.info(p)
 
         if p is not None and occupancy_map.is_in_bounds(p):
             goal_point = p
